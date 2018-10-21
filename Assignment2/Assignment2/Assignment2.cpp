@@ -131,7 +131,7 @@ int main()
 				oline = oline + "MUX2x1 #(.DATAWIDTH(XX)) MUX2x1(.a(d), .b(e), .sel(g), .d(z)); \n";
 				temp = temp + 1;
 			}
-			found9 = iline.find("++");
+			found9 = iline.find("==");
 			if (found9 != string::npos)
 			{
 				oline = oline + "COMP #(.DATAWIDTH(XX) COMP_1(.a(d), .b(e), .gt(g)); \n";
