@@ -6,13 +6,24 @@
 #include <string>
 using namespace std;
 
+string iovalues(string &str, string &x, string &y, string &z)
+{
+	z = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 3));
+	x = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 3));
+	y = str.substr(0, str.find(" "));
+	return (x, y, z);
+}
+
 int main()
 {
 	string filename, filename1, filename2, iline, oline, str;
-	string insize, outsize;
+	string insize, outsize, x, y, z;
 	size_t found, found1, found2, found3, found4, found5, found6;
 	size_t found7, found8, found9, found10, found11, foundname1, foundname2;
-	int bittemp, temp, compare = 0, bitsize = 0;
+	int bittemp, temp, bitsize = 0;
+	
 
 	cout << "Please enter filename: ";
 	cin >> filename;
@@ -45,7 +56,7 @@ int main()
 			foundname2 = iline.find(" ");
 			if (foundname2 != string::npos)
 			{
-				insize = iline.substr(0, foundname2);
+				insize = stoi(iline.substr(0, foundname2));
 			}
 			
 		}
@@ -79,11 +90,15 @@ int main()
 				found1 = iline.find("+ 1");
 				if (found1 != string::npos)
 				{
-					oline = oline + "INC #(.DATAWIDTH(XX)) INC_1(.a(a), .b(b), .sum(d)); \n";
+					str = iline;
+					(x, y, z) = iovalues(str, x, y, z);
+					oline = oline + "INC #(.DATAWIDTH(XX)) INC_1(.a(" + x + "), .d(" + z + ")); \n";
 				}
 				else
 				{
-					oline = oline + "ADD #(.DATAWIDTH(XX)) ADD_1(.a(a), .b(b), .sum(d)); \n";
+					str = iline;
+					(x, y, z) = iovalues(str, x, y, z);
+					oline = oline + "ADD #(.DATAWIDTH(XX)) ADD_1(.a(" + x + "), .b(" + y + "), .sum(" + z + ")); \n";
 				}
 			}
 			found2 = iline.find("-");
@@ -93,41 +108,53 @@ int main()
 				found2 = iline.find("- 1");
 				if (found2 != string::npos)
 				{
-					oline = oline + "DEC #(.DATAWIDTH(XX)) DEC_1(.a(f), .b({8'b00000000, d}), .diff(xwire)); \n";
+					oline = oline + "DEC #(.DATAWIDTH(XX)) DEC_1(.a(f), .d(xwire)); \n";
 				}
 				else
 				{
-					oline = oline + "SUB #(.DATAWIDTH(XX)) SUB_1(.a(f), .b({8'b00000000, d}), .diff(xwire)); \n";
+					str = iline;
+					(x, y, z) = iovalues(str, x, y, z); 
+					oline = oline + "SUB #(.DATAWIDTH(XX)) SUB_1(.a(" + x + "), .b(" + y + "), .diff(" + z + ")); \n";
 				}
 			}
 			found3 = iline.find("*");
 			if (found3 != string::npos)
 			{
-				oline = oline + "MUL #(.DATAWIDTH(XX)) MUL_1(.a(a), .b(c), .prod(f)); \n";
+				str = iline;
+				(x, y, z) = iovalues(str, x, y, z); 
+				oline = oline + "MUL #(.DATAWIDTH(XX)) MUL_1(.a(" + x + "), .b(" + y + "), .prod(" + z + ")); \n";
 				temp = 3;
 			}
 			found4 = iline.find("/");
 			if (found4 != string::npos)
 			{
-				oline = oline + "DIV #(.DATAWIDTH(XX)) DIV_1(.a(a), .b(b), .quot(e)); \n";
+				str = iline;
+				(x, y, z) = iovalues(str, x, y, z); 
+				oline = oline + "DIV #(.DATAWIDTH(XX)) DIV_1(.a(" + x + "), .b(" + y + "), .quot(" + z + ")); \n";
 				temp = 4;
 			}
 			found5 = iline.find("%");
 			if (found5 != string::npos)
 			{
-				oline = oline + "MOD #(.DATAWIDTH(XX)) MOD_1(.a(a), .b(c), .rem(g)); \n";
+				str = iline;
+				(x, y, z) = iovalues(str, x, y, z); 
+				oline = oline + "MOD #(.DATAWIDTH(XX)) MOD_1(.a(" + x + "), .b(" + y + "), .rem(" + z + ")); \n";
 				temp = 5;
 			}
 			found6 = iline.find("<<");
 			if (found6 != string::npos)
 			{
-				oline = oline + "SHL #(.DATAWIDTH(XX)) SHL_1(.a(g), .sh_amt({31'b0,dLTe}), .d(xwire)); \n";
+				str = iline;
+				(x, y, z) = iovalues(str, x, y, z); 
+				oline = oline + "SHL #(.DATAWIDTH(XX)) SHL_1(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				temp = 6;
 			}
 			found7 = iline.find(">>");
 			if (found7 != string::npos)
 			{
-				oline = oline + "SHR #(.DATAWIDTH(XX)) SHR_1(.a(l2), .sh_amt({8'b00000000, sa}), .d(l2div2)); \n";
+				str = iline;
+				(x, y, z) = iovalues(str, x, y, z); 
+				oline = oline + "SHR #(.DATAWIDTH(XX)) SHR_1(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				temp = 7;
 			}
 			found8 = iline.find("?");
@@ -156,7 +183,9 @@ int main()
 			}
 			if ((found != string::npos) && (temp == 0))
 			{
-				oline = oline + "REG #(.DATAWIDTH(XX)) REG_1(.d(xwire), .Clk(1), .Rst(0), .q(x)); \n";
+				str = iline;
+				(x, y, z) = iovalues(str, x, y, z); 
+				oline = oline + "REG #(.DATAWIDTH(XX)) REG_1(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
 			}
 		}
 	}
@@ -167,4 +196,7 @@ int main()
 
 	return 0;
 }
+
+
+
 
