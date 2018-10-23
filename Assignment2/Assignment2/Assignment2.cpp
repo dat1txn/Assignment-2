@@ -16,10 +16,62 @@ string iovalues(string &str, string &x, string &y, string &z)
 	return (x, y, z);
 }
 
+string iovaluesmux(string &str, string &w, string &x, string &y, string &z)
+{
+	z = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 3));
+	w = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 3));
+	x = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 3));
+	y = str.substr(0, str.find(" "));
+	return (x, y, z);
+}
+
+string iovaluesreg(string &str, string &x, string &z)
+{
+	z = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 3));
+	x = str.substr(0, str.find(" "));
+	return (x, z);
+}
+
+string iovaluesshift(string &str, string &x, string &y, string &z)
+{
+	z = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 3));
+	x = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 4));
+	y = str.substr(0, str.find(" "));
+	return (x, y, z);
+}
+
+string iovaluescomp(string &str, string &x, string &y, string &z)
+{
+	int tempinc;
+	size_t yes;
+	z = str.substr(0, str.find(" "));
+	str = str.substr((str.find(" ") + 3));
+	x = str.substr(0, str.find(" "));
+	yes = (str.find("=="));
+	if (yes != string::npos)
+	{
+		tempinc = 4;
+	}
+	else
+	{
+		tempinc = 3;
+	}
+	str = str.substr((str.find(" ") + tempinc));
+	y = str.substr(0, str.find(" "));
+	return (x, y, z);
+}
+
+
 int main()
 {
 	string filename, filename1, filename2, iline, oline, str;
-	string insize, outsize, x, y, z;
+	string insize, outsize, w, x, y, z;
 	size_t found, found1, found2, found3, found4, found5, found6;
 	size_t found7, found8, found9, found10, found11, foundname1, foundname2;
 	int bittemp, temp, bitsize = 0;
@@ -56,7 +108,8 @@ int main()
 			foundname2 = iline.find(" ");
 			if (foundname2 != string::npos)
 			{
-				insize = stoi(iline.substr(0, foundname2));
+				insize = iline.substr(0, foundname2);
+				bitsize = stoi(insize);
 			}
 			
 		}
@@ -76,7 +129,7 @@ int main()
 				else
 					bitsize = bittemp;
 			}
-			oline = "module " + filename + "#(parameter DATAWIDTH = " + outsize + ")(a, b, c, z, x); \n";
+			oline = "module " + filename + " #(parameter DATAWIDTH = " + outsize + ")(a, b, c, z, x); \n";
 		}
 
 		found = iline.find("=");
@@ -108,7 +161,9 @@ int main()
 				found2 = iline.find("- 1");
 				if (found2 != string::npos)
 				{
-					oline = oline + "DEC #(.DATAWIDTH(XX)) DEC_1(.a(f), .d(xwire)); \n";
+					str = iline;
+					(x, y, z) = iovalues(str, x, y, z); 
+					oline = oline + "DEC #(.DATAWIDTH(XX)) DEC_1(.a(" + x + "), .d(" + z + ")); \n";
 				}
 				else
 				{
@@ -145,7 +200,7 @@ int main()
 			if (found6 != string::npos)
 			{
 				str = iline;
-				(x, y, z) = iovalues(str, x, y, z); 
+				(x, y, z) = iovaluesshift(str, x, y, z); 
 				oline = oline + "SHL #(.DATAWIDTH(XX)) SHL_1(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				temp = 6;
 			}
@@ -153,38 +208,46 @@ int main()
 			if (found7 != string::npos)
 			{
 				str = iline;
-				(x, y, z) = iovalues(str, x, y, z); 
+				(x, y, z) = iovaluesshift(str, x, y, z); 
 				oline = oline + "SHR #(.DATAWIDTH(XX)) SHR_1(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				temp = 7;
 			}
 			found8 = iline.find("?");
 			if (found8 != string::npos)
 			{
-				oline = oline + "MUX2x1 #(.DATAWIDTH(XX)) MUX2x1(.a(d), .b(e), .sel(g), .d(z)); \n";
+				str = iline;
+				(w, x, y, z) = iovaluesmux(str, w, x, y, z); 
+				oline = oline + "MUX2x1 #(.DATAWIDTH(XX)) MUX2x1(.a(" + x + "), .b(" + y + "), .sel(" + w + "), .d(" + z + ")); \n";
 				temp = 8;
 			}
 			found9 = iline.find("==");
 			if (found9 != string::npos)
 			{
-				oline = oline + "COMP #(.DATAWIDTH(XX)) COMP_1(.a(d), .b(e), .gt(g), .lt(l), .eq(e)); \n";
+				str = iline;
+				(x, y, z) = iovaluescomp(str, x, y, z); 
+				oline = oline + "COMP #(.DATAWIDTH(XX)) COMP_1(.a(" + x + "), .b(" + y + "), .gt(0), .lt(0), .eq(" + z + ")); \n";
 				temp = 9;
 			}
 			found10 = iline.find("<");
 			if ((found10 != string::npos) && (temp != 6))
 			{
-				oline = oline + "COMP #(.DATAWIDTH(XX)) COMP_1(.a(d), .b(e), .gt(g), .lt(l), .eq(e)); \n";
+				str = iline;
+				(x, y, z) = iovaluescomp(str, x, y, z); 
+				oline = oline + "COMP #(.DATAWIDTH(XX)) COMP_1(.a(" + x + "), .b(" + y + "), .gt(0), .lt(" + z + "), .eq(0)); \n";
 				temp = 10;
 			}
 			found11 = iline.find(">");
 			if ((found11 != string::npos) && (temp != 7))
 			{
-				oline = oline + "COMP #(.DATAWIDTH(XX)) COMP_1(.a(d), .b(e), .gt(g), .lt(l), .eq(e)); \n";
+				str = iline;
+				(x, y, z) = iovaluescomp(str, x, y, z); 
+				oline = oline + "COMP #(.DATAWIDTH(XX)) COMP_1(.a(" + x + "), .b(" + y + "), .gt(" + z + "), .lt(0), .eq(0)); \n";
 				temp = 11;
 			}
 			if ((found != string::npos) && (temp == 0))
 			{
 				str = iline;
-				(x, y, z) = iovalues(str, x, y, z); 
+				(x, z) = iovaluesreg(str, x, z); 
 				oline = oline + "REG #(.DATAWIDTH(XX)) REG_1(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
 			}
 		}
