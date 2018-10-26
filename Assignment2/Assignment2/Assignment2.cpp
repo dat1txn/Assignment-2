@@ -82,11 +82,12 @@ string iovaluescomp(string &str, string &x, string &y, string &z) //find input a
 
 int main()
 {
-	string filename, filename1, filename2, iline, oline, str, instr, outstr, wirestr, regstr;
+	string filename, filename1, filename2, iline, oline, newline, str;
+	string instr[10] = {}, outstr[10] = {}, wirestr[10] = {}, regstr[10] = {};
 	string insize, outsize, w, x, y, z, x_dw, y_dw, z_dw;
 	size_t found, found1, found2, found3, found4, found5, found6;
 	size_t found7, found8, found9, found10, found11, foundname1, foundname2;
-	int bittemp, temp = 0, bitsize = 0, start = 0;
+	int bittemp, temp = 0, bitsize = 0, start = 0, i = 0, m = 0, DW[10] = {0,0,0,0,0,0,0,0,0,0};
 	
 
 	cout << "Please enter filename: "; // generate output file 
@@ -117,14 +118,17 @@ int main()
 			iline = iline.substr(foundname1 + 6);
 			foundname1 = iline.find("Int");
 			iline = iline.substr(foundname1 + 3);
-			instr += iline + "#";
+			//instr += iline + "#";
 			foundname2 = iline.find(" ");
 			if (foundname2 != string::npos)
 			{
 				insize = iline.substr(0, foundname2);
 				bitsize = stoi(insize);
+				DW[i] = bitsize;
+				i = i++;
 			}
-
+			instr[m] = iline.substr(foundname2);
+			m++;
 		}
 		foundname1 = iline.find("output"); // parse the output variables
 		if (foundname1 != string::npos)
@@ -132,7 +136,7 @@ int main()
 			iline = iline.substr(foundname1 + 6);
 			foundname1 = iline.find("Int");
 			iline = iline.substr(foundname1 + 3);
-			outstr += iline + "#";
+			//outstr += iline + "#";
 			foundname2 = iline.find(" ");
 			if (foundname2 != string::npos)
 			{
@@ -143,6 +147,10 @@ int main()
 				else
 					bitsize = bittemp;
 			}
+			outstr[m] = iline.substr(foundname2);
+			m++;
+			DW[i] = bitsize;
+			i = i++;
 			oline = "module " + filename + " #(parameter DATAWIDTH = " + outsize + ")(a, b, c, z, x); \n";
 		}
 
@@ -152,14 +160,17 @@ int main()
 			iline = iline.substr(foundname1 + 4);
 			foundname1 = iline.find("Int");
 			iline = iline.substr(foundname1 + 3);
-			wirestr += iline + "#";
-			/*foundname2 = iline.find(" ");
+			//wirestr += iline + "#";
+			foundname2 = iline.find(" ");
 			if (foundname2 != string::npos)
 			{
 				insize = iline.substr(0, foundname2);
 				bitsize = stoi(insize);
-			}*/
-
+			}
+			wirestr[m] = iline.substr(foundname2);
+			m++;
+			DW[i] = bitsize;
+			i = i++;
 		}
 
 		foundname1 = iline.find("register");
@@ -168,20 +179,50 @@ int main()
 			iline = iline.substr(foundname1 + 8);
 			foundname1 = iline.find("Int");
 			iline = iline.substr(foundname1 + 3);
-			regstr += iline + "#";
-			/*foundname2 = iline.find(" ");
+			//regstr += iline + "#";
+			foundname2 = iline.find(" ");
 			if (foundname2 != string::npos)
 			{
 				insize = iline.substr(0, foundname2);
 				bitsize = stoi(insize);
-			}*/
-
+			}
+			regstr[m] = iline.substr(foundname2);
+			m++;
+			DW[i] = bitsize;
+			i = i++;
 		}
 	}
 	myfile2 << oline;
+	for (int p = 0; p < i; p++)
+	{
+		if (instr[p] != "")
+		{
+			str = instr[p];
+			string str2 = std::to_string((stoi(outsize)) / (DW[p]));
+			newline = newline + "input[DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+		}
+		if (outstr[p] != "")
+		{
+			str = outstr[p];
+			string str2 = std::to_string((stoi(outsize)) / (DW[p]));
+			newline = newline + "output wire[DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+		}
+		if (wirestr[p] != "")
+		{
+			str = wirestr[p];
+			string str2 = std::to_string((stoi(outsize)) / (DW[p]));
+			newline = newline + "wire[DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+		}
+		if (regstr[p] != "")
+		{
+			str = regstr[p];
+			string str2 = std::to_string((stoi(outsize)) / (DW[p]));
+			newline = newline + "register[DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+		}
+	}
 	oline = "";
 	myfile1.close();
-
+	myfile2 << newline;
 	ifstream myfile3(filename1);
 
 	if (myfile3.is_open()) // open input file check and write to output file check
@@ -211,7 +252,7 @@ int main()
 				{
 					str = iline;
 					(x, y, z) = iovalues(str, x, y, z);
-					z_dw = outdatawidth(outstr, wirestr, regstr, z, z_dw);
+					//z_dw = outdatawidth(outstr, wirestr, regstr, z, z_dw);
 					oline = oline + "ADD #(.DATAWIDTH(" + z_dw + ")) ADD_1(.a(" + x + "), .b(" + y + "), .sum(" + z + ")); \n";
 				}
 			}
@@ -320,7 +361,3 @@ int main()
 
 	return 0;
 }
-
-
-
-
