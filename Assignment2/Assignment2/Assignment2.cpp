@@ -767,24 +767,21 @@ int main()
 					}
 					
 					count_DPC[10]++;							//count instances of INC
-					if ((sx == 0) && (sy == 0) && (sz == 0))
+					if ((sx == 1) && (sz == 1))
+					//if ((sx == 0) && (sz == 0))
 						oline = oline + "INC #(.DATAWIDTH" + z_dw[0] + ") INC_" + std::to_string(count_DPC[10]) + "(.a(" + x + "), .d(" + z + ")); \n";
-					//if ((sx > 0) || (sy > 0) || (sz > 0))
+					//if ((sx > 0) || (sz > 0))
 					else
 					{
-						if (sx == 1)
+						if (sx == 0)
 						{
 							x = "$signed({1'b0," + x + "}";
 						}
-						if (sy == 1)
-						{
-							y = "$signed({1'b0," + y + "}";
-						}
-						if (sz == 1)
+						if (sz == 0)
 						{
 							z = "$signed({1'b0," + z + "}";
 						}
-						oline = oline + "SINC #(.DATAWIDTH" + z_dw[0] + ") SINC_" + std::to_string(count_DPC[10]) + "($signed(.a(" + x + "), .d(" + z + "))); \n";
+						oline = oline + "SINC #(.DATAWIDTH" + z_dw[0] + ") SINC_" + std::to_string(count_DPC[10]) + "(.a(" + x + "), .d(" + z + ")); \n";
 					}
 					/*dpc_list[sum_count_DPC].top_order = sum_count_DPC;
 					dpc_list[sum_count_DPC].latency = std::stoi(strv);
@@ -911,20 +908,21 @@ int main()
 						}
 					}
 					count_DPC[1]++;							//count instances of ADD
-					if ((sx == 0) && (sy == 0) && (sz == 0))
+					if ((sx == 1) && (sy == 1) && (sz == 1))
+					//if ((sx == 0) && (sy == 0) && (sz == 0))
 						oline = oline + "ADD #(.DATAWIDTH(" + z_dw[1] + ")) ADD_" + std::to_string(count_DPC[1]) + "(.a(" + x + "), .b(" + y + "), .sum(" + z + ")); \n";
 					//if ((sx > 0) || (sy > 0) || (sz > 0))
 					else
 					{
-						if (sx == 1)
+						if (sx == 0)
 						{
 							x = "$signed({1'b0," + x + "}";
 						}
-						if (sy == 1)
+						if (sy == 0)
 						{
 							y = "$signed({1'b0," + y + "}";
 						}
-						if (sz == 1)
+						if (sz == 0)
 						{
 							z = "$signed({1'b0," + z + "}";
 						}
@@ -1027,24 +1025,21 @@ int main()
 					}
 					
 					count_DPC[11]++;							//count instances of DEC
-					if ((sx == 0) && (sy == 0) && (sz == 0))
+					if ((sx == 1) && (sz == 1))
+					//if ((sx == 0) && (sz == 0))
 						oline = oline + "DEC #(.DATAWIDTH(" + z_dw[2] + ")) DEC_" + std::to_string(count_DPC[11]) + "(.a(" + x + "), .d(" + z + ")); \n";
 					//if ((sx > 0) || (sy > 0) || (sz > 0))
 					else
 					{
-						if (sx == 1)
+						if (sx == 0)
 						{
 							x = "$signed({1'b0," + x + "}";
 						}
-						if (sy == 1)
-						{
-							y = "$signed({1'b0," + y + "}";
-						}
-						if (sz == 1)
+						if (sz == 0)
 						{
 							z = "$signed({1'b0," + z + "}";
 						}
-						oline = oline + "SDEC #(.DATAWIDTH(" + z_dw[2] + ")) SDEC_" + std::to_string(count_DPC[11]) + "($signed(.a(" + x + "), .d(" + z + "))); \n";
+						oline = oline + "SDEC #(.DATAWIDTH(" + z_dw[2] + ")) SDEC_" + std::to_string(count_DPC[11]) + "(.a(" + x + "), .d(" + z + ")); \n";
 					}
 					/*dpc_list[sum_count_DPC].order = sum_count_DPC;
 					sum_count_DPC++;*/
@@ -1166,24 +1161,25 @@ int main()
 						}
 					}
 					count_DPC[2]++;							//count instances of SUB
-					if ((sx == 0) && (sy == 0) && (sz == 0))
+					if ((sx == 1) && (sy == 1) && (sz == 1))
+					//if ((sx == 0) && (sy == 0) && (sz == 0))
 						oline = oline + "SUB #(.DATAWIDTH(" + z_dw[3] + ")) SUB_" + std::to_string(count_DPC[2]) + "(.a(" + x + "), .b(" + y + "), .diff(" + z + ")); \n";
 					//if ((sx > 0) || (sy > 0) || (sz > 0))
 					else
 					{
-						if (sx == 1)
+						if (sx == 0)
 						{
 							x = "$signed({1'b0," + x + "}";
 						}
-						if (sy == 1)
+						if (sy == 0)
 						{
 							y = "$signed({1'b0," + y + "}";
 						}
-						if (sz == 1)
+						if (sz == 0)
 						{
 							z = "$signed({1'b0," + z + "}";
 						}
-						oline = oline + "SSUB #(.DATAWIDTH(" + z_dw[3] + ")) SSUB_" + std::to_string(count_DPC[2]) + "($signed(.a(" + x + "), .b(" + y + "), .diff(" + z + "))); \n";
+						oline = oline + "SSUB #(.DATAWIDTH(" + z_dw[3] + ")) SSUB_" + std::to_string(count_DPC[2]) + "(.a(" + x + "), .b(" + y + "), .diff(" + z + ")); \n";
 					}
 					/*dpc_list[sum_count_DPC].order = sum_count_DPC;
 					sum_count_DPC++;*/
@@ -1307,24 +1303,25 @@ int main()
 					}
 				}
 				count_DPC[3]++;							//count instances of MUL
-				if ((sx == 0) && (sy == 0) && (sz == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "MUL #(.DATAWIDTH(" + z_dw[4] + ")) MUL_" + std::to_string(count_DPC[3]) + "(.a(" + x + "), .b(" + y + "), .prod(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					oline = oline + "SMUL #(.DATAWIDTH(" + z_dw[4] + ")) SMUL_" + std::to_string(count_DPC[3]) + "($signed(.a(" + x + "), .b(" + y + "), .prod(" + z + "))); \n";
+					oline = oline + "SMUL #(.DATAWIDTH(" + z_dw[4] + ")) SMUL_" + std::to_string(count_DPC[3]) + "(.a(" + x + "), .b(" + y + "), .prod(" + z + ")); \n";
 				}
 				temp = 3;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -1448,24 +1445,25 @@ int main()
 					}
 				}
 				count_DPC[8]++;							//count instances of DIV
-				if ((sx == 0) && (sy == 0) && (sz == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "DIV #(.DATAWIDTH(" + z_dw[5] + ")) DIV_" + std::to_string(count_DPC[8]) + "(.a(" + x + "), .b(" + y + "), .quot(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					oline = oline + "SDIV #(.DATAWIDTH(" + z_dw[5] + ")) SDIV_" + std::to_string(count_DPC[8]) + "($signed(.a(" + x + "), .b(" + y + "), .quot(" + z + "))); \n";
+					oline = oline + "SDIV #(.DATAWIDTH(" + z_dw[5] + ")) SDIV_" + std::to_string(count_DPC[8]) + "(.a(" + x + "), .b(" + y + "), .quot(" + z + ")); \n";
 				}
 				temp = 4;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -1589,24 +1587,25 @@ int main()
 					}
 				}
 				count_DPC[9]++;							//count instances of MOD
-				if ((sx == 0) && (sy == 0) && (sz == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "MOD #(.DATAWIDTH(" + z_dw[6] + ")) MOD_" + std::to_string(count_DPC[9]) + "(.a(" + x + "), .b(" + y + "), .rem(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					oline = oline + "SMOD #(.DATAWIDTH(" + z_dw[6] + ")) SMOD_" + std::to_string(count_DPC[9]) + "($signed(.a(" + x + "), .b(" + y + "), .rem(" + z + "))); \n";
+					oline = oline + "SMOD #(.DATAWIDTH(" + z_dw[6] + ")) SMOD_" + std::to_string(count_DPC[9]) + "(.a(" + x + "), .b(" + y + "), .rem(" + z + ")); \n";
 				}
 				temp = 5;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -1730,24 +1729,25 @@ int main()
 					}
 				}
 				count_DPC[7]++;							//count instances of SHL
-				if ((sx == 0) && (sy == 0) && (sz == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "SHL #(.DATAWIDTH(" + z_dw[7] + ")) SHL_" + std::to_string(count_DPC[7]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					oline = oline + "SSHL #(.DATAWIDTH(" + z_dw[7] + ")) SSHL_" + std::to_string(count_DPC[7]) + "($signed(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + "))); \n";
+					oline = oline + "SSHL #(.DATAWIDTH(" + z_dw[7] + ")) SSHL_" + std::to_string(count_DPC[7]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				}
 				temp = 6;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -1871,24 +1871,25 @@ int main()
 					}
 				}
 				count_DPC[6]++;							//count instances of SHR
-				if ((sx == 0) && (sy == 0) && (sz == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "SHR #(.DATAWIDTH(" + z_dw[8] + ")) SHR_" + std::to_string(count_DPC[6]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					oline = oline + "SSHR #(.DATAWIDTH(" + z_dw[8] + ")) SSHR_" + std::to_string(count_DPC[6]) + "($signed(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + "))); \n";
+					oline = oline + "SSHR #(.DATAWIDTH(" + z_dw[8] + ")) SSHR_" + std::to_string(count_DPC[6]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				}
 				temp = 7;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -2040,28 +2041,29 @@ int main()
 					}
 				}
 				count_DPC[5]++;							//count instances of MUX
-				if ((sx == 0) && (sy == 0) && (sz == 0) && (sw == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1) && (sw == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0) && (sw == 0))
 					oline = oline + "MUX2x1 #(.DATAWIDTH(" + z_dw[9] + ")) MUX2x1_" + std::to_string(count_DPC[5]) + "(.a(" + x + "), .b(" + y + "), .sel(" + w + "), .d(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0) || (sw > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					if (sw == 1)
+					if (sw == 0)
 					{
 						w = "$signed({1'b0," + w + "}";
 					}
-					oline = oline + "SMUX2x1 #(.DATAWIDTH(" + z_dw[9] + ")) SMUX2x1_" + std::to_string(count_DPC[5]) + "($signed(.a(" + x + "), .b(" + y + "), .sel(" + w + "), .d(" + z + "))); \n";
+					oline = oline + "SMUX2x1 #(.DATAWIDTH(" + z_dw[9] + ")) SMUX2x1_" + std::to_string(count_DPC[5]) + "(.a(" + x + "), .b(" + y + "), .sel(" + w + "), .d(" + z + ")); \n";
 				}
 				temp = 8;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -2182,24 +2184,25 @@ int main()
 					}
 				}
 				count_DPC[4]++;							//count instances of COMP
-				if ((sx == 0) && (sy == 0) && (sz == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[10] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .eq(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[10] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "($signed(.a(" + x + "), .b(" + y + "), .eq(" + z + "))); \n";
+					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[10] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .eq(" + z + ")); \n";
 				}
 				temp = 9;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -2322,24 +2325,25 @@ int main()
 					}
 				}
 				count_DPC[4]++;							//count instances of COMP
-				if ((sx == 0) && (sy == 0) && (sz == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[11] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .lt(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[11] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "($signed(.a(" + x + "), .b(" + y + "), .lt(" + z + "))); \n";
+					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[11] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .lt(" + z + ")); \n";
 				}
 				temp = 10;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -2463,24 +2467,25 @@ int main()
 					}
 				}
 				count_DPC[4]++;							//count instances of COMP
-				if ((sx == 0) && (sy == 0) && (sz == 0))
+				if ((sx == 1) && (sy == 1) && (sz == 1))
+				//if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[12] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .gt(" + z + ")); \n";
 				//if ((sx > 0) || (sy > 0) || (sz > 0))
 				else
 				{
-					if (sx == 1)
+					if (sx == 0)
 					{
 						x = "$signed({1'b0," + x + "}";
 					}
-					if (sy == 1)
+					if (sy == 0)
 					{
 						y = "$signed({1'b0," + y + "}";
 					}
-					if (sz == 1)
+					if (sz == 0)
 					{
 						z = "$signed({1'b0," + z + "}";
 					}
-					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[12] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "($signed(.a(" + x + "), .b(" + y + "), .gt(" + z + "))); \n";
+					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[12] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .gt(" + z + ")); \n";
 				}
 				temp = 11;
 				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
@@ -2582,24 +2587,21 @@ int main()
 				else
 				{
 					count_DPC[0]++;							//count instances of REG
-					if ((sx == 0) && (sy == 0) && (sz == 0))
+					if ((sx == 1) && (sz == 1))
+					//if ((sx == 0) && (sz == 0))
 						oline = oline + "REG #(.DATAWIDTH(" + z_dw[12] + ")) REG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
-					//if ((sx > 0) || (sy > 0) || (sz > 0))
+					//if ((sx > 0) || (sz > 0))
 					else
 					{
-						if (sx == 1)
+						if (sx == 0)
 						{
 							x = "$signed({1'b0," + x + "}";
 						}
-						if (sy == 1)
-						{
-							y = "$signed({1'b0," + y + "}";
-						}
-						if (sz == 1)
+						if (sz == 0)
 						{
 							z = "$signed({1'b0," + z + "}";
 						}
-						oline = oline + "SREG #(.DATAWIDTH(" + z_dw[12] + ")) SREG_" + std::to_string(count_DPC[0]) + "($signed(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + "))); \n";
+						oline = oline + "SREG #(.DATAWIDTH(" + z_dw[12] + ")) SREG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
 					}
 					/*dpc_list[sum_count_DPC].top_order = sum_count_DPC;
 					dpc_list[sum_count_DPC].latency = std::stoi(strv);
