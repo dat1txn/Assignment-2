@@ -2077,27 +2077,27 @@ int main()
 					strc = instr[g];
 					if (strc.find(z) < 20)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[10] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}strc = outstr[g];
 					if (strc.find(z) < 20)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[10] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
 					if (strc.find(z) < 20)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[10] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
 					if (strc.find(z) < 20)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[10] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
@@ -2107,27 +2107,27 @@ int main()
 					strc = instr[l];
 					if (strc.find(x) < 20)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[10] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}strc = outstr[l];
 					if (strc.find(x) < 20)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[10] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
 					if (strc.find(x) < 20)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[10] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
 					if (strc.find(x) < 20)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[10] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
@@ -2137,31 +2137,35 @@ int main()
 					strc = instr[k];
 					if (strc.find(y) < 20)
 					{
-						y_dw[12] = std::to_string(DW[k]);
+						y_dw[10] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}strc = outstr[k];
 					if (strc.find(y) < 20)
 					{
-						y_dw[12] = std::to_string(DW[k]);
+						y_dw[10] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
 					if (strc.find(y) < 20)
 					{
-						y_dw[12] = std::to_string(DW[k]);
+						y_dw[10] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
 					if (strc.find(y) < 20)
 					{
-						y_dw[12] = std::to_string(DW[k]);
+						y_dw[10] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 				}
+				if (stoi(x_dw[10]) >= stoi(y_dw[10]))
+					z_dw[10] = x_dw[10];
+				else
+					z_dw[10] = x_dw[10];
 				count_DPC[4]++;							//count instances of COMP
 				if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[10] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .eq(" + z + ")); \n";
@@ -2214,27 +2218,27 @@ int main()
 					strc = instr[g];
 					if (strc.find(z) < 20)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[11] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}strc = outstr[g];
 					if (strc.find(z) < 20)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[11] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
 					if (strc.find(z) < 20)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[11] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
 					if (strc.find(z) < 20)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[11] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
@@ -2244,28 +2248,28 @@ int main()
 					strc = instr[l];
 					if (strc.find(x) < 20)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[11] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
 					if (strc.find(x) < 20)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[11] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
 					if (strc.find(x) < 20)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[11] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
 					if (strc.find(x) < 20)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[11] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
@@ -2275,32 +2279,36 @@ int main()
 					strc = instr[k];
 					if (strc.find(y) < 20)
 					{
-						y_dw[12] = std::to_string(DW[k]);
+						y_dw[11] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = outstr[k];
 					if (strc.find(y) < 20)
 					{
-						y_dw[12] = std::to_string(DW[k]);
+						y_dw[11] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
 					if (strc.find(y) < 20)
 					{
-						y_dw[12] = std::to_string(DW[k]);
+						y_dw[11] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
 					if (strc.find(y) < 20)
 					{
-						y_dw[12] = std::to_string(DW[k]);
+						y_dw[11] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 				}
+				if (stoi(x_dw[11]) >= stoi(y_dw[11]))
+					z_dw[11] = x_dw[11];
+				else
+					z_dw[11] = x_dw[11];
 				count_DPC[4]++;							//count instances of COMP
 				if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[11] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .lt(" + z + ")); \n";
@@ -2441,6 +2449,10 @@ int main()
 						break;
 					}
 				}
+				if (stoi(x_dw[12]) >= stoi(y_dw[12]))
+					z_dw[12] = x_dw[12];
+				else
+					z_dw[12] = x_dw[12];
 				count_DPC[4]++;							//count instances of COMP
 				if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[12] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .gt(" + z + ")); \n";
