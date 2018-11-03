@@ -398,13 +398,17 @@ void get_schedule(void)
 
 	//put circuit inputs into array of strings	 
 	temp_str = ins_list;
+	cout << "ins_list: " << ins_list << endl;
+	cout << "circuit inputs:  ";
 	p = 0;
 	while ((end_pos = temp_str.find(',')) != string::npos) {
 		ready_inputs[p] = temp_str.substr(beg_pos, end_pos - beg_pos);
+		cout << ready_inputs[p] << ", ";
 		temp_str = temp_str.substr(end_pos + 1);
 		p++;
 	}
 	ready_ins_count = p;
+	cout << "ready_ins_count = " << ready_ins_count << endl;
 
 	//put datapath inputs into an array of stings 
 	dpc_idx = 0;		//index the DPC list 
@@ -418,10 +422,13 @@ void get_schedule(void)
 			}
 			else
 				dpc_inputs[dpc_idx][in_idx] = "0";			//set un-used elements to 0 
+			cout << dpc_idx << ", " << dpc_inputs[dpc_idx][in_idx] << "; ";
+			dpc_idx++;
 		} while (in_idx < 10);
-		dpc_idx++;							//advance to next component 
+		//dpc_idx++;							//advance to next component 
 	} while (dpc_list[dpc_idx].order);
 	dpc_item_count = dpc_idx;
+	cout << endl;
 	   	  
 	//put datapath outputs into an array of stings 
 	dpc_idx = 0;		//index the DPC list 
