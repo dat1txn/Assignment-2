@@ -4,3 +4,4 @@ project(Assignment-2)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(dpgen main.cpp)
+add_executable(dpgen_randal randal_crp_help.cpp)
