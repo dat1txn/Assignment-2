@@ -606,13 +606,13 @@ int main(int argc, char *argv[]) {
     string filename, filename1, filename2, iline, oline, newline, str, str1, strc, strv;
     string str2, str3, str4, str5;
     string instr[10] = {}, outstr[10] = {}, wirestr[10] = {}, regstr[12] = {};
-    string insize, outsize, w, x, y, z, x_dw, y_dw, z_dw[13] = {};
+    string insize, outsize, w, x, y, z, w_dw[14] = {}, x_dw[14] = {}, y_dw[14] = {}, z_dw[14] = {};
     size_t found, found1, found2, found3, found4, found5, found6;
     size_t found7, found8, found9, found10, found11, foundname1, foundname2;
     int bittemp, temp = 0, bitsize = 0, start = 0, i = 0, m = 0, DW[15] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
     //array to count instances of each datapath component
-    int s = 0, error = 0, here = 0, count_DPC[12] = { 0,0,0,0,0,0,0,0,0,0,0,0 };
-    int nw = 0, nx = 0, ny = 0, nz = 0;
+    int s = 0, error = 0, here = 0, count_DPC[12] = { 0,0,0,0,0,0,0,0,0,0,0,0 };int nw = 0, nx = 0, ny = 0, nz = 0, sw = 0, sx = 0, sy = 0, sz = 0;
+    int u = 0, sign_var[10] = { 0,0,0,0,0,0,0,0,0,0 };
     int sum_count_DPC = 0;		//count the datapath components, which is sum of count_DPC[]
     int c_period_req = 0;		//number of clock periods required by schedule
     float cr_dp = 0.0;			//critical data path
