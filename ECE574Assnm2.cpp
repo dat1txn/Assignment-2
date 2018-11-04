@@ -401,7 +401,6 @@ void parse_cir_inputs(void)
 	p = -1;
 	do {
 		p++;
-		//beg_pos = end_pos++;
 		while( ((temp_str[end_pos] == ' ') || (temp_str[end_pos] == ',')) && (temp_str[end_pos]))
 		{
 			end_pos++;			//step over spaces and comma to eliminate from variable
@@ -415,15 +414,13 @@ void parse_cir_inputs(void)
 	} while (temp_str[end_pos] && p < 4);
 }
 
-
-
 //routine to find schedule, that is populate the .i_clock value of the structure for each DPC
 void get_schedule(void)
 {
 	int p = 0;								//counter used in for loop
 	int n = 0;
 	int k = 0;
-	int inp_idx;								//index for inputs arrays
+	int inp_idx;							//index for inputs arrays
 	int dpc_idx;							//index for data path components arrays
 	int i_clock = 1;						//clock periods used for scheduling
 	int count_dpc_scheduled = 0;			//count the Data Path Components (DPC) scheduled
@@ -440,19 +437,11 @@ void get_schedule(void)
 	int rdy_idx = 0;
 	int inp_found = 0;						//flag inputs as found in ready input list
 
-	cout << "get_schedule" << endl;
 	parse_cir_inputs();
 
-	cout << cir_list.inp_str << endl;
-	cout << "output string" << cir_list.out_str << endl;
-
-	cout << "circuit inputs:  " << endl;
 	for (p = 0; p < 3; ++p) {
 		cout << cir_list.ins[p] << endl;
 	}
-	cout << endl << endl;
-
-	cout << "ready_inputs:  " << endl;
 	for (p = 0; p < 3; ++p) {
 		ready_inputs[p] = cir_list.ins[p];		//copy circuit inpputs
 		cout << ready_inputs[p] << ", ";
@@ -461,13 +450,11 @@ void get_schedule(void)
 
 	for (p = 4; p < 15; p++) {
 		ready_inputs[p] = string();		//empty string
-		//inp_found[p] = 0;				//set input found array elements to zero
 	}
 
 	ready_ins_count = 0;
 	do {
 		ready_ins_count++;				//count the number of ready inpuuts
-	//} while (!ready_inputs[ready_ins_count].empty());
 	} while (ready_inputs[ready_ins_count] != "\0");
 	cout << "ready inputs:  " << ready_ins_count << endl;
 
@@ -479,17 +466,27 @@ void get_schedule(void)
 			(dpc_list[dpc_idx].dp_ins[0] == cir_list.ins[2]) || (dpc_list[dpc_idx].dp_ins[3] == cir_list.ins[3]))
 		{
 			dpc_list[dpc_idx].i_clock = i_clock;			//schedule the dpc
-			cout << ".i_clock  " << dpc_idx << ": " << dpc_list[p].i_clock << endl;
-
+			//cout << ".i_clock  " << dpc_idx << ": " << dpc_list[p].i_clock << endl;
+			dpc_schd++;
 			p = 0;											//add datapath outputs to ready_ouputs array
-			do {											//all dpc have at least 1 input
-				ready_inputs[ready_ins_count - 1] = cir_list.outs[p];
-				p++;
-			//} while( ! cir_list.ins[p].empty() );
-			} while (!cir_list.ins[p].empty() );
 		}
 		dpc_idx++;
 	}
+	dpc_item_count = dpc_idx;				//capture the number of DPC
+	
+	dpc_idx = 0;
+	do {		//add outputs to ready_inputs
+		if (dpc_list[dpc_idx].i_clock == 1)
+		{
+			p = 0;
+			do {											//all dpc have at least 1 input
+				ready_inputs[ready_ins_count] = dpc_list[dpc_idx].dp_outs[p];
+				p++;
+				ready_ins_count++;
+			} while (!dpc_list[dpc_idx].dp_outs[p].empty());					//dpc_list[dpc_idx].dp_outs[p]);
+		}
+		dpc_idx++;
+	} while (dpc_list[dpc_idx].order);
 
 	//check every DPC against the ready inputs list; then increment the clock
 	//dpc_idx = 0;
@@ -503,7 +500,7 @@ void get_schedule(void)
 				do {								//dpc inputs loop
 					rdy_idx = 0;
 					inp_found = 0;
-					do {					//ready inputs loop
+					do {							//ready inputs loop
 						if (dpc_list[dpc_idx].dp_ins[inp_idx] == ready_inputs[rdy_idx]) {
 							inp_found = 1;
 						}
@@ -511,23 +508,38 @@ void get_schedule(void)
 							rdy_idx++;
 						}
 					} while (!inp_found && !ready_inputs[rdy_idx].empty());		//until input is found or no more ready inputs
-					inp_idx++;			//advance to next input
+					inp_idx++;						//advance to next input
 				} while (inp_found && !dpc_list[dpc_idx].dp_ins[inp_idx].empty());			//until all inputs are checked or an input is not found
-				if ( inp_found && !dpc_list[dpc_idx].dp_ins[inp_idx].empty() )
+				//if ( inp_found && !dpc_list[dpc_idx].dp_ins[inp_idx].empty() )
+				if (inp_found)
 				{
 					dpc_list[dpc_idx].i_clock = i_clock;			//schedule the DPC for this clock period
 					dpc_schd++;										//count dpc scheduled
 				}
 			}  //if (!dpc_list[dpc_idx].i_clock)
 			dpc_idx++;			//advance to next dpc
-		} while (dpc_list[dpc_idx].order);						//.order is zero if array is empty	
-		//dpc_idx++;			//advance to next dpc
-	} while (dpc_schd < dpc_item_count);			//repeat until all components have been scheduled
+		} while (dpc_list[dpc_idx].order);							//.order is zero if array is empty	
+		
+		dpc_idx = 0;
+		do {		//add outputs to ready_inputs
+			if (dpc_list[dpc_idx].i_clock == i_clock)
+			{
+				p = 0;
+				do {											//all dpc have at least 1 input
+					ready_inputs[ready_ins_count] = dpc_list[dpc_idx].dp_outs[p];
+					p++;
+					ready_ins_count++;
+				} while (!dpc_list[dpc_idx].dp_outs[p].empty());					//dpc_list[dpc_idx].dp_outs[p]);
+			}
+			dpc_idx++;
+		} while (dpc_list[dpc_idx].order);
+
+	} while ((dpc_schd < dpc_item_count) && (i_clock < 11));			//repeat until all components have been scheduled
 
 	circuit_clocks = i_clock;			//number of clock cycles required for this circuit
-	for (p = 0; p < dpc_item_count; p++) {
-		cout << "p i.clock:  " << p << "  " << dpc_list[p].i_clock << endl;
-	}
+	//for (p = 0; p < dpc_item_count; p++) {
+		//cout << "Component #: " << p << "  " << "Period" << dpc_list[p].i_clock << endl;
+	//}
 }
 
 
@@ -551,9 +563,8 @@ void get_est_lat(void)
 		{ 1.792, 2.218, 3.108, 3.701, 4.685, 6.503}, };		//dec
 
 	for (p = 0; dpc_list[p].function != 99; p++) {
-		//dpc_list[p].latency = est_lat_tab[dpc_list[p].d_width][dpc_list[p].function];
 		dpc_list[p].latency = est_lat_tab[dpc_list[p].function][dpc_list[p].d_width];
-		cout << ".schedule " << p << dpc_list[p].i_clock;
+		//cout << ".schedule " << p << dpc_list[p].i_clock;
 	}
 }
 
@@ -686,7 +697,6 @@ cir_list.inp_str = "\0";
 					bitsize = bittemp;
 			}
 			instr[m] = iline.substr(foundname2+1);
-			cout << "instr[m]" << m << instr[m] << endl;
 			m++;
 			DW[i] = bittemp;
 			i = i++;
@@ -709,7 +719,6 @@ cir_list.inp_str = "\0";
 			}
 			outstr[m] = iline.substr(foundname2);
 			
-			//ins_list = ins_list + instr[m] + " ,"
 			m++;
 			DW[i] = bittemp;
 			i = i++;
@@ -1160,13 +1169,11 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].dp_ins[0] = x;
 				dpc_list[sum_count_DPC].dp_ins[1] = y;
 				dpc_list[sum_count_DPC].dp_outs[0] = z;
-
 				dpc_list[sum_count_DPC].function = 3;
 				dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 				dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
 				//dpc_list[sum_count_DPC].latency = std::stof(strv);
-				dpc_list[sum_count_DPC].out_line = oline;
-				
+				dpc_list[sum_count_DPC].out_line = oline;				
 				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[4]);
 				sum_count_DPC++;
 
@@ -1222,13 +1229,11 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].dp_ins[0] = x;
 				dpc_list[sum_count_DPC].dp_ins[1] = y;
 				dpc_list[sum_count_DPC].dp_outs[0] = z;
-
 				dpc_list[sum_count_DPC].function = 8;
 				dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 				dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
 				//dpc_list[sum_count_DPC].latency = std::stod(strv);
-				dpc_list[sum_count_DPC].out_line = oline;
-				
+				dpc_list[sum_count_DPC].out_line = oline;		
 				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[5]);
 				sum_count_DPC++;
 
@@ -1284,7 +1289,6 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].dp_ins[0] = x;
 				dpc_list[sum_count_DPC].dp_ins[1] = y;
 				dpc_list[sum_count_DPC].dp_outs[0] = z;
-
 				dpc_list[sum_count_DPC].function = 9;
 				dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 				dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
@@ -1292,7 +1296,6 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].out_line = oline;
 				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[6]);
 				sum_count_DPC++;
-
 				temp = 5;
 			}
 			found6 = iline.find(" << ");					//select shift left, SHL
@@ -1345,16 +1348,13 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].dp_ins[0] = x;
 				dpc_list[sum_count_DPC].dp_ins[1] = y;
 				dpc_list[sum_count_DPC].dp_outs[0] = z;
-
 				dpc_list[sum_count_DPC].function = 7;
 				dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 				dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
 				//dpc_list[sum_count_DPC].latency = std::stof(strv);
-				dpc_list[sum_count_DPC].out_line = oline;
-			
+				dpc_list[sum_count_DPC].out_line = oline;			
 				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[7]);
 				sum_count_DPC++;
-
 				temp = 6;
 			}
 			found7 = iline.find(" >> ");					//select shift right, SHR
@@ -1407,16 +1407,13 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].dp_ins[0] = x;
 				dpc_list[sum_count_DPC].dp_ins[1] = y;
 				dpc_list[sum_count_DPC].dp_outs[0] = z;
-
 				dpc_list[sum_count_DPC].function = 6;
 				dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 				dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
 				//dpc_list[sum_count_DPC].latency = std::stof(strv);
-				dpc_list[sum_count_DPC].out_line = oline;
-				
+				dpc_list[sum_count_DPC].out_line = oline;				
 				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[8]);
 				sum_count_DPC++;
-
 				temp = 7;
 			}
 			found8 = iline.find(" ? ");					//select MUX
@@ -1474,8 +1471,7 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 				dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
 				//dpc_list[sum_count_DPC].latency = std::stof(strv);
-				dpc_list[sum_count_DPC].out_line = oline;
-				
+				dpc_list[sum_count_DPC].out_line = oline;			
 				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[9]);
 				sum_count_DPC++;
 				temp = 8;
@@ -1530,7 +1526,6 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].dp_ins[0] = x;
 				dpc_list[sum_count_DPC].dp_ins[1] = y;
 				dpc_list[sum_count_DPC].dp_outs[0] = z;
-
 				dpc_list[sum_count_DPC].function = 4;
 				dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 				dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
@@ -1655,8 +1650,7 @@ cir_list.inp_str = "\0";
 				dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 				dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
 				//dpc_list[sum_count_DPC].latency = std::stof(strv);
-				dpc_list[sum_count_DPC].out_line = oline;
-				
+				dpc_list[sum_count_DPC].out_line = oline;			
 				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[12]);
 				sum_count_DPC++;
 				temp = 11;
@@ -1722,8 +1716,7 @@ cir_list.inp_str = "\0";
 					dpc_list[sum_count_DPC].order = sum_count_DPC+1;
 					dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
 					//dpc_list[sum_count_DPC].latency = std::stof(strv);
-					dpc_list[sum_count_DPC].out_line = oline;
-			
+					dpc_list[sum_count_DPC].out_line = oline;			
 					dpc_list[sum_count_DPC].d_width = std::stoi(strv);
 					sum_count_DPC++;
 				}
@@ -1738,6 +1731,7 @@ cir_list.inp_str = "\0";
 	cr_dp = calc_cr_dp();					//calculate the critical data path
 	myfile2 << endl << endl;
 	myfile2 << "//Critical Path : " + std::to_string(cr_dp) << endl;		//print critical data path to output file
+	cout << endl << "Critical Path : " << cr_dp << endl << endl;
 
 	myfile3.close();
 	myfile2.close();
