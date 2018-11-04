@@ -2961,7 +2961,7 @@ int main(int argc, char *argv[]) {
                     dpc_list[sum_count_DPC].top_order = sum_count_DPC+1;
                     //dpc_list[sum_count_DPC].latency = std::stof(strv);
                     dpc_list[sum_count_DPC].out_line = oline;
-                    dpc_list[sum_count_DPC].d_width = std::stoi(strv);
+                    dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[13]);
                     sum_count_DPC++;
                 }
             }
