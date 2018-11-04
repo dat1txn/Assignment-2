@@ -1,16 +1,49 @@
 // Assignment2.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
+#include "pch.h"
 #include <iostream>
 #include <fstream>
 #include <string>
 using namespace std;
 
+//global variables
+
+string ins_list = string();		//comma delimited list of inputs to the circuit
+int circuit_clocks = 0;			//number of clock periods required to schedule this circuit
+
+//global structure contains attributes of Data Path Components (DPC)
+struct dp_comp {				//Data Path Component (DPC) structure with attributes for DPC 
+	int function;				//enumeration of the components ( REG = 0, ADD = 1, SUB = 2, etc)
+	int order;					//order as received from text file
+	int top_order;				//topological order used to find critical datapath
+	string out_line;			//output line to be sent to output file (verilog file)
+	int d_width;				//datpath width
+	float latency;				//value from estimated latency table, used to find critical datapath
+	int i_clock;				//clock latency number
+	string dp_ins_str;			//comma delimited list of inputs
+	string dp_ins[2];
+	string dp_outs_str;			//comma delimited list of outputs
+	string dp_outs[3];
+};								//Data Path Component (DPC) structure with DPC attributes
+struct dp_comp dpc_list[20];	//create array of above structure
+
+//global structure contains attributes of the Circuit
+struct cir_desc {			//circuit description
+	string inp_str;			//input string
+	string ins[4];			//array of inputs to the circuit
+	string inp_type;		//Int or UInt
+	string out_str;
+	string outs[4];			//array of outputs of the circuit
+	string wires[4];
+	string reg[4];
+};
+struct cir_desc cir_list;
+
 //genaric routine to find input and output variables for datapath components
 
 string iovalues(string &str, string &x, string &y, string &z) //find input and output variables for structure
 {
-	z = str.substr(0, str.find(" "));	
+	z = str.substr(0, str.find(" "));
 	str = str.substr((str.find(" ") + 3));
 	x = str.substr(0, str.find(" "));
 	str = str.substr((str.find(" ") + 3));
@@ -83,12 +116,12 @@ int opcheck(string newline, string &x, string &z) //operation check
 	int e;
 	size_t h;
 	string op;
-	string ops[11] = { "+", "-", "*", "/", "%", "<", ">", "==", "<<", ">>", "?"};
+	string ops[11] = { "+", "-", "*", "/", "%", "<", ">", "==", "<<", ">>", "?" };
 	h = newline.find(" ");
 	newline = newline.substr(h + 1);
 	h = newline.find(" ");
-	newline = newline.substr(h + 1);	
-	op = newline.substr(0,(newline.find(" ")));
+	newline = newline.substr(h + 1);
+	op = newline.substr(0, (newline.find(" ")));
 	for (int b = 0; b < 12; b++)
 	{
 		if ((op != ops[b]) && (op != x) && (op != " "))
@@ -99,7 +132,7 @@ int opcheck(string newline, string &x, string &z) //operation check
 		{
 			e = 0;
 			break;
-		}					
+		}
 	}
 	return (e);
 }
@@ -182,13 +215,13 @@ int varcheck(int &nx, int &ny, int &nz, string x, string y, string z, string str
 	if ((v != string::npos) || (q != string::npos))
 	{
 		nz++;
-	}	
+	}
 	return (0);
 }
 
 int varcheck2(int &nw, int &nx, int &ny, int &nz, string w, string x, string y, string z, string str2, string str3, string str4, string str5) //variable check
 {
-	
+
 	string w1 = w + ",", w2 = w + " ";
 	string x1 = x + ",", x2 = w + " ";
 	string y1 = y + ",", y2 = w + " ";
@@ -289,13 +322,13 @@ int varcheck2(int &nw, int &nx, int &ny, int &nz, string w, string x, string y, 
 	q = s5.find(z2);
 	if ((v != string::npos) || (q != string::npos))
 	{
-		 nz++;
+		nz++;
 	}
 	return (0);
 }
 int varcheck3(int &nx, int &nz, string x, string z, string str2, string str3, string str4, string str5) //variable check
 {
-	
+
 	size_t v, q;
 	string x1 = x + ",", x2 = x + " ";
 	string z1 = z + ",", z2 = z + " ";
@@ -351,52 +384,258 @@ int varcheck3(int &nx, int &nz, string x, string z, string str2, string str3, st
 	return (0);
 }
 
-//routine to add estimated latency to structure
+void parse_cir_inputs(void)
+{
+	string temp_str = string();
+	int p = 0;
+	int findLoc = 0;
+	int beg_pos = 0;
+	int end_pos = 0;
+	int index = 0;
+	string var_str = string();
+
+	temp_str = cir_list.inp_str;
+	temp_str = temp_str + '\0';			//terminate with NULL
+
+	end_pos = 0;
+	p = -1;
+	do {
+		p++;
+		//beg_pos = end_pos++;
+		while (((temp_str[end_pos] == ' ') || (temp_str[end_pos] == ',')) && (temp_str[end_pos]))
+		{
+			end_pos++;			//step over spaces and comma to eliminate from variable
+		}
+		beg_pos = end_pos++;
+		while (temp_str[end_pos] != ',' && (temp_str[end_pos]))
+		{
+			++end_pos;
+		}
+		cir_list.ins[p] = temp_str.substr(beg_pos, end_pos - beg_pos);
+	} while (temp_str[end_pos] && p < 4);
+}
+
+
+
+//routine to find schedule, that is populate the .i_clock value of the structure for each DPC
+void get_schedule(void)
+{
+	int p = 0;								//counter used in for loop
+	int n = 0;
+	int k = 0;
+	int inp_idx;								//index for inputs arrays
+	int dpc_idx;							//index for data path components arrays
+	int i_clock = 1;						//clock periods used for scheduling
+	int count_dpc_scheduled = 0;			//count the Data Path Components (DPC) scheduled
+	string ready_inputs[15];				//array of inputs that are ready, allowing datapaths to be scheduled
+	string dpc_inputs[12][10];				//DPC inputs [dpc_list.order][inp_index]
+	string dpc_outputs[12][10];				//DPC inputs [dpc_list.order][inp_index]
+	string temp_str = string();				//temporary string
+	int beg_pos = 0;						//string index
+	int end_pos = 0;
+	int count_dpc = 0;						//count the components
+	int ready_ins_count;					//number of inputs in ready_inputs list
+	int dpc_item_count = 0;					//number of DPC in circuit
+	int dpc_schd = 0;						//count dpc scheduled
+	int rdy_idx = 0;
+	int inp_found = 0;						//flag inputs as found in ready input list
+
+	cout << "get_schedule" << endl;
+	parse_cir_inputs();
+
+	cout << cir_list.inp_str << endl;
+	cout << "output string" << cir_list.out_str << endl;
+
+	cout << "circuit inputs:  " << endl;
+	for (p = 0; p < 3; ++p) {
+		cout << cir_list.ins[p] << endl;
+	}
+	cout << endl << endl;
+
+	cout << "ready_inputs:  " << endl;
+	for (p = 0; p < 3; ++p) {
+		ready_inputs[p] = cir_list.ins[p];		//copy circuit inpputs
+		cout << ready_inputs[p] << ", ";
+	}
+	cout << endl;
+
+	for (p = 4; p < 15; p++) {
+		ready_inputs[p] = string();		//empty string
+		//inp_found[p] = 0;				//set input found array elements to zero
+	}
+
+	ready_ins_count = 0;
+	do {
+		ready_ins_count++;				//count the number of ready inpuuts
+	//} while (!ready_inputs[ready_ins_count].empty());
+	} while (ready_inputs[ready_ins_count] != "\0");
+	cout << "ready inputs:  " << ready_ins_count << endl;
+
+	//DPC that can run in first clock period have inputs in the circuit inputs list
+	dpc_idx = 0;
+
+	while (dpc_list[dpc_idx].order) {			//check every dpc against the circuit inputs
+		if ((dpc_list[dpc_idx].dp_ins[0] == cir_list.ins[0]) || (dpc_list[dpc_idx].dp_ins[0] == cir_list.ins[1]) ||
+			(dpc_list[dpc_idx].dp_ins[0] == cir_list.ins[2]) || (dpc_list[dpc_idx].dp_ins[3] == cir_list.ins[3]))
+		{
+			dpc_list[dpc_idx].i_clock = i_clock;			//schedule the dpc
+			cout << ".i_clock  " << dpc_idx << ": " << dpc_list[p].i_clock << endl;
+
+			p = 0;											//add datapath outputs to ready_ouputs array
+			do {											//all dpc have at least 1 input
+				ready_inputs[ready_ins_count - 1] = cir_list.outs[p];
+				p++;
+				//} while( ! cir_list.ins[p].empty() );
+			} while (!cir_list.ins[p].empty());
+		}
+		dpc_idx++;
+	}
+
+	//check every DPC against the ready inputs list; then increment the clock
+	//dpc_idx = 0;
+	do {						//clock loop
+		i_clock++;				//advance to next clock period
+		dpc_idx = 0;
+		do {										//dpc loop
+			if (!dpc_list[dpc_idx].i_clock)			//if this DPC is NOT scheduled, compare inputs to ready_inputs
+			{
+				inp_idx = 0;
+				do {								//dpc inputs loop
+					rdy_idx = 0;
+					inp_found = 0;
+					do {					//ready inputs loop
+						if (dpc_list[dpc_idx].dp_ins[inp_idx] == ready_inputs[rdy_idx]) {
+							inp_found = 1;
+						}
+						else {
+							rdy_idx++;
+						}
+					} while (!inp_found && !ready_inputs[rdy_idx].empty());		//until input is found or no more ready inputs
+					inp_idx++;			//advance to next input
+				} while (inp_found && !dpc_list[dpc_idx].dp_ins[inp_idx].empty());			//until all inputs are checked or an input is not found
+				if (inp_found && !dpc_list[dpc_idx].dp_ins[inp_idx].empty())
+				{
+					dpc_list[dpc_idx].i_clock = i_clock;			//schedule the DPC for this clock period
+					dpc_schd++;										//count dpc scheduled
+				}
+			}  //if (!dpc_list[dpc_idx].i_clock)
+			dpc_idx++;			//advance to next dpc
+		} while (dpc_list[dpc_idx].order);						//.order is zero if array is empty	
+		//dpc_idx++;			//advance to next dpc
+	} while (dpc_schd < dpc_item_count);			//repeat until all components have been scheduled
+
+	circuit_clocks = i_clock;			//number of clock cycles required for this circuit
+	for (p = 0; p < dpc_item_count; p++) {
+		cout << "p i.clock:  " << p << "  " << dpc_list[p].i_clock << endl;
+	}
+}
+
+
+//routine to add estimated latency of each DPC, that is populate the .latency of the structure for each DPC
 void get_est_lat(void)
 {
+	int p;		//used as counter in for loop
 
+	float est_lat_tab[12][6] = {							//  [datawidth] [ component]  estimated latency table from assignment
+		{ 2.616, 2.644, 2.879, 3.061, 3.602, 3.966},		//reg
+		{ 2.704, 3.713, 4.924, 5.638, 7.270, 9.566},		//add
+		{ 3.024, 3.412, 4.890, 5.569, 7.253, 9.566},		//sub
+		{ 2.438, 3.651, 7.453, 7.811, 12.395, 15.354},		//mul
+		{ 3.031, 3.934, 5.949, 6.256, 7.264, 8.416},		//comp
+		{ 4.083, 4.115, 4.815, 5.623, 8.079, 8.766},		//mux
+		{ 3.644, 4.007, 5.178, 6.460, 8.819, 11.095},		//shr
+		{ 3.614, 3.980, 5.152, 6.549, 8.565, 11.220},		//shl
+		{ 0.619, 2.144, 15.439, 33.093, 89.312, 243.233},	//div
+		{ 0.758, 2.149, 16.078, 35.563, 88.142, 250.583},	//mod
+		{ 1.792, 2.218, 3.111, 3.471, 4.347, 6.200},		//inc
+		{ 1.792, 2.218, 3.108, 3.701, 4.685, 6.503}, };		//dec
+
+	for (p = 0; dpc_list[p].function != 99; p++) {
+		//dpc_list[p].latency = est_lat_tab[dpc_list[p].d_width][dpc_list[p].function];
+		dpc_list[p].latency = est_lat_tab[dpc_list[p].function][dpc_list[p].d_width];
+		cout << ".schedule " << p << dpc_list[p].i_clock;
+	}
+}
+
+//routine to calculate the Critical Data Path
+//Using the schedule stored in dpc_list[].i_clock find the maximum latency for each clock period and take the sum
+float calc_cr_dp(void)
+{
+	int clock_count = 0;			//count the clock period, used in for loop
+	int p = 0;						//used to index for loops
+	float cr_dp = 0.0;				//critical datapath 
+	float max_lat[15];				//maximum latecncy for each clock period
+
+	//initialize the max_lat array
+	for (p = 0; p < 15; p++)
+	{
+		max_lat[p] = 0.0;
+	}
+	//get the maximum latency for each clock period
+	for (clock_count = 0; clock_count < circuit_clocks; clock_count++)
+	{
+		//check every DPC
+		for (p = 0; dpc_list[p].function != 99; p++)
+		{
+			if ((dpc_list[p].i_clock == clock_count) && ((max_lat[p]) < (dpc_list[p].latency)))
+			{
+				max_lat[clock_count] = dpc_list[p].latency;
+			}
+		}
+	}
+	// sum the maximum latency values
+	for (p = 0; p < 15; p++)
+	{
+		cr_dp = cr_dp + max_lat[p];
+	}
+	return cr_dp;
 }
 
 int main()
 {
 	string filename, filename1, filename2, iline, oline, newline, str, str1, strc, strv;
-	string str2, str3, str4, str5, strw, strx, stry, strz;
-	string instr[10] = {}, outstr[10] = {}, wirestr[10] = {}, regstr[12] = {};	
-	string insize, outsize, w, x, y, z, w_dw[13] = {}, x_dw[13] = {}, y_dw[13] = {}, z_dw[13] = {};
+	string str2, str3, str4, str5;
+	string instr[10] = {}, outstr[10] = {}, wirestr[10] = {}, regstr[12] = {};
+	string insize, outsize, w, x, y, z, w_dw[14] = {}, x_dw[14] = {}, y_dw[14] = {}, z_dw[14] = {};
 	size_t found, found1, found2, found3, found4, found5, found6;
 	size_t found7, found8, found9, found10, found11, foundname1, foundname2;
 	int bittemp, temp = 0, bitsize = 0, start = 0, i = 0, m = 0, DW[15] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 	//array to count instances of each datapath component
 	int s = 0, error = 0, here = 0, count_DPC[12] = { 0,0,0,0,0,0,0,0,0,0,0,0 };
 	int nw = 0, nx = 0, ny = 0, nz = 0, sw = 0, sx = 0, sy = 0, sz = 0;
-	int u = 0,  sign_var[10] = { 0,0,0,0,0,0,0,0,0,0 };
+	int u = 0, sign_var[10] = { 0,0,0,0,0,0,0,0,0,0 };
+	int sum_count_DPC = 0;		//count the datapath components, which is sum of count_DPC[]
+	int c_period_req = 0;		//number of clock periods required by schedule
+	float cr_dp = 0.0;			//critical data path
 
-	/*int sum_count_DPC = 0;		//count the datapath components, which is sum of count_DPC[]
-	struct dp_comp {			//Data Path Component (DPC) structure with attributes for DPC 
-		int order;				//order as received from text file
-		int top_order;			//topological order used to find critical datapath
-		string out_line;		//output line to be sent to output file (verilog file)
-		int d_width;			//datpath width
-		int latency;			//value from estimated latency table, used to find critical datapath
-		int i_clock;			//clock latency number
-		string dp_ins;			//comma delimited list of inputs
-		string dp_outs;			//comma delimited list of outputs
-	};							//Data Path Component (DPC) structure with DPC attributes
-	struct dp_comp dpc_list[20];*/	//create array of above structure
+//initialize the cir_list array
+	for (i = 0; i < 4; i++) {
+		cir_list.ins[i] = "\0";		//array of inputs to the circuit	
+		cir_list.outs[i] = string();		//array of outputs of the circuit
+		cir_list.wires[i] = string();
+		cir_list.reg[i] = string();
+	}
+	cir_list.inp_str = "\0";
 
 
-//initailize the dpc_list array
-	/*for (i = 0; i < 20; i++) {
+	//initailize the dpc_list array
+	for (i = 0; i < 20; i++) {
+		dpc_list[i].function = 99;		//component enumeration uses 0 thru 12
 		dpc_list[i].order = 0;
 		dpc_list[i].top_order = 0;
 		dpc_list[i].out_line = string();
 		dpc_list[i].d_width = 0;
-		dpc_list[i].latency = 0;
+		dpc_list[i].latency = 0.0;
 		dpc_list[i].i_clock = 0;
-		dpc_list[i].dp_ins = string();
-		dpc_list[i].dp_outs = string();
+		dpc_list[i].dp_ins[0] = string();
+		dpc_list[i].dp_ins[1] = string();
+		dpc_list[i].dp_ins_str = string();
+		dpc_list[i].dp_outs[0] = string();
+		dpc_list[i].dp_outs[1] = string();
+		dpc_list[i].dp_outs[2] = string();
+		dpc_list[i].dp_outs_str = string();
 	}
-	i = 0;*/
+	i = 0;
 
 	cout << "Please enter filename: "; // generate output file 
 	cin >> filename;
@@ -406,15 +645,14 @@ int main()
 	ifstream myfile1(filename1); // open input file
 	ofstream myfile2(filename2); //open output file
 
-
 	if (myfile1.is_open()) // open input file check and write to output file check
 	{
 		oline = "`timescale 1ns / 1ns \n";
-			if (myfile2.is_open())
-			{
-				myfile2 << oline << '\n';
-			}
-			else cout << "Unable to open file";
+		if (myfile2.is_open())
+		{
+			myfile2 << oline << '\n';
+		}
+		else cout << "Unable to open file";
 	}
 	else cout << "Unable to open file";
 
@@ -430,14 +668,14 @@ int main()
 		foundname1 = iline.find("input");
 		if (foundname1 != string::npos)
 		{
-			if ((foundname1 = iline.find("UInt")) != string::npos)
-			{
+			if ((foundname1 = iline.find("UInt")) != string::npos) {
 				iline = iline.substr(foundname1 + 4);
+				cir_list.inp_type = "UInt";
 				u++;
-			}				
-			if ((foundname1 = iline.find("Int")) != string::npos)
-			{
+			}
+			if ((foundname1 = iline.find("Int")) != string::npos) {
 				iline = iline.substr(foundname1 + 3);
+				cir_list.inp_type = "Int";
 				sign_var[u] = 1;
 				u++;
 			}
@@ -451,7 +689,8 @@ int main()
 				else
 					bitsize = bittemp;
 			}
-			instr[m] = iline.substr(foundname2);
+			instr[m] = iline.substr(foundname2 + 1);
+			cout << "instr[m]" << m << instr[m] << endl;
 			m++;
 			DW[i] = bittemp;
 			i = i++;
@@ -459,7 +698,6 @@ int main()
 		foundname1 = iline.find("output"); // parse the output variables
 		if (foundname1 != string::npos)
 		{
-			iline = iline.substr(foundname1 + 6);
 			if ((foundname1 = iline.find("UInt")) != string::npos)
 			{
 				iline = iline.substr(foundname1 + 4);
@@ -482,6 +720,8 @@ int main()
 					bitsize = bittemp;
 			}
 			outstr[m] = iline.substr(foundname2);
+
+			//ins_list = ins_list + instr[m] + " ,"
 			m++;
 			DW[i] = bittemp;
 			i = i++;
@@ -490,7 +730,6 @@ int main()
 		foundname1 = iline.find("wire");
 		if ((foundname1 != string::npos) && (foundname1 == 0))
 		{
-			iline = iline.substr(foundname1 + 4);
 			if ((foundname1 = iline.find("UInt")) != string::npos)
 			{
 				iline = iline.substr(foundname1 + 4);
@@ -517,7 +756,6 @@ int main()
 		foundname1 = iline.find("register");
 		if (foundname1 != string::npos)
 		{
-			iline = iline.substr(foundname1 + 8);
 			if ((foundname1 = iline.find("UInt")) != string::npos)
 			{
 				iline = iline.substr(foundname1 + 4);
@@ -547,7 +785,7 @@ int main()
 		{
 			if (c == 0)
 			{
-				str = instr[c];				
+				str = instr[c];
 			}
 			else
 			{
@@ -563,8 +801,12 @@ int main()
 	myfile2 << oline;
 
 	/**************
-	This for loop block  creates declartions of inputs, outputs, wires and registers
+	This for loop block creates declartions of inputs, outputs, wires and registers
 	***************/
+	int inpt_count = 0;
+	int outpt_count = 0;
+	int wire_count = 0;
+	int reg_count = 0;
 
 	for (int p = 0; p < i; p++)
 	{
@@ -574,12 +816,11 @@ int main()
 			if ((stoi(outsize)) >= (DW[p]))
 			{
 				string str2 = std::to_string(bitsize / (DW[p]));
-				if(sign_var[p] == 0)
+				if (sign_var[p] == 0)
 					newline = newline + "input [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
 				if (sign_var[p] > 0)
 					newline = newline + "input signed [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
 			}
-				
 			else
 			{
 				string str2 = std::to_string((DW[p]) / bitsize);
@@ -587,7 +828,9 @@ int main()
 					newline = newline + "input [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
 				if (sign_var[p] > 0)
 					newline = newline + "input signed [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
-			}				
+			}
+			cir_list.inp_str = str;
+			inpt_count++;
 		}
 		if (outstr[p] != "")
 		{
@@ -598,7 +841,7 @@ int main()
 				if (sign_var[p] == 0)
 					newline = newline + "output wire [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
 				if (sign_var[p] > 0)
-					newline = newline + "output wire signed [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+					newline = newline + "output wire signed [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";				
 			}
 
 			else
@@ -609,6 +852,8 @@ int main()
 				if (sign_var[p] > 0)
 					newline = newline + "output wire signed [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
 			}
+			cir_list.out_str = str;
+			outpt_count++;
 		}
 		if (wirestr[p] != "")
 		{
@@ -630,6 +875,7 @@ int main()
 				if (sign_var[p] > 0)
 					newline = newline + "wire signed [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
 			}
+			cir_list.wires[wire_count] = str;
 		}
 		if (regstr[p] != "")
 		{
@@ -642,7 +888,6 @@ int main()
 				if (sign_var[p] > 0)
 					newline = newline + "register signed [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
 			}
-
 			else
 			{
 				string str2 = std::to_string((DW[p]) / bitsize);
@@ -651,6 +896,8 @@ int main()
 				if (sign_var[p] > 0)
 					newline = newline + "register signed [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
 			}
+			cir_list.reg[reg_count] = str;
+			reg_count++;
 		}
 	}
 	oline = "";
@@ -668,9 +915,10 @@ int main()
 	this while loop bloc works through the input file looking for datapath components
 	and writes a line to the output file for each datapath component
 	***********************************/
+	int count_dpc = 0;					//count the datapath components found
 	while (getline(myfile3, iline))
 	{
- 		found = iline.find(" = "); // detemine which operation is being performed and generate structure line to output
+		found = iline.find(" = "); // detemine which operation is being performed and generate structure line to output
 		if ((found != string::npos) && (found < 50))
 		{
 			temp = 0;
@@ -678,7 +926,7 @@ int main()
 			found1 = iline.find(" + ");					//select ADD or INC
 			if (found1 != string::npos)
 			{
-				temp = 1;				
+				temp = 1;
 				found1 = iline.find("+ 1");
 				if (found1 != string::npos)
 				{
@@ -691,7 +939,7 @@ int main()
 						str4 = wirestr[m];
 						str5 = regstr[m];
 						s = varcheck3(nx, nz, x, z, str2, str3, str4, str5);
-						
+						//here = here + s;
 						if ((nx > 0) && (nz > 0))
 							break;
 					}
@@ -706,28 +954,28 @@ int main()
 					for (int g = 0; g < i; g++)
 					{
 						strc = instr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[0] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = outstr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[0] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = wirestr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[0] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = regstr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[0] = std::to_string(DW[g]);
 							sz = sign_var[g];
@@ -737,35 +985,35 @@ int main()
 					for (int l = 0; l < i; l++)
 					{
 						strc = instr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[0] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = outstr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[0] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = wirestr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[0] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = regstr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[0] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 					}
-					
+
 					count_DPC[10]++;							//count instances of INC
 					if ((sx == 0) && (sz == 0))
 						oline = oline + "INC #(.DATAWIDTH" + z_dw[0] + ") INC_" + std::to_string(count_DPC[10]) + "(.a(" + x + "), .d(" + z + ")); \n";
@@ -781,13 +1029,17 @@ int main()
 						}
 						oline = oline + "SINC #(.DATAWIDTH" + z_dw[0] + ") SINC_" + std::to_string(count_DPC[10]) + "(.a(" + x + "), .d(" + z + ")); \n";
 					}
-					/*dpc_list[sum_count_DPC].top_order = sum_count_DPC;
-					dpc_list[sum_count_DPC].latency = std::stoi(strv);
+
+					dpc_list[count_dpc].dp_ins[0] = x;
+					dpc_list[count_dpc].dp_ins[1] = x;
+					dpc_list[count_dpc].dp_outs[0] = z;
+					dpc_list[sum_count_DPC].function = 10;
+					dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+					dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+					//dpc_list[sum_count_DPC].latency = std::stod(strv);
 					dpc_list[sum_count_DPC].out_line = oline;
-					dpc_list[sum_count_DPC].dp_ins = x;
-					dpc_list[sum_count_DPC].dp_outs = z;
 					dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[0]);
-					sum_count_DPC++;*/
+					sum_count_DPC++;
 				}
 				else
 				{
@@ -800,7 +1052,7 @@ int main()
 						str4 = wirestr[m];
 						str5 = regstr[m];
 						s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-						
+						//here = here + s;
 						if ((nx > 0) && (ny > 0) && (nz > 0))
 							break;
 					}
@@ -815,28 +1067,28 @@ int main()
 					for (int g = 0; g < i; g++)
 					{
 						strc = instr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[1] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = outstr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[1] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = wirestr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[1] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = regstr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[1] = std::to_string(DW[g]);
 							sz = sign_var[g];
@@ -846,28 +1098,28 @@ int main()
 					for (int l = 0; l < i; l++)
 					{
 						strc = instr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[1] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = outstr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[1] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = wirestr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[1] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = regstr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[1] = std::to_string(DW[l]);
 							sx = sign_var[l];
@@ -877,28 +1129,28 @@ int main()
 					for (int k = 0; k < i; k++)
 					{
 						strc = instr[k];
-						if (strc.find(y) < 20)
+						if (strc.find(y) < 50)
 						{
 							y_dw[1] = std::to_string(DW[k]);
 							sy = sign_var[k];
 							break;
 						}
 						strc = outstr[k];
-						if (strc.find(y) < 20)
+						if (strc.find(y) < 50)
 						{
 							y_dw[1] = std::to_string(DW[k]);
 							sy = sign_var[k];
 							break;
 						}
 						strc = wirestr[k];
-						if (strc.find(y) < 20)
+						if (strc.find(y) < 50)
 						{
 							y_dw[1] = std::to_string(DW[k]);
 							sy = sign_var[k];
 							break;
 						}
 						strc = regstr[k];
-						if (strc.find(y) < 20)
+						if (strc.find(y) < 50)
 						{
 							y_dw[1] = std::to_string(DW[k]);
 							sy = sign_var[k];
@@ -924,8 +1176,17 @@ int main()
 						}
 						oline = oline + "SADD #(.DATAWIDTH(" + z_dw[1] + ")) SADD_" + std::to_string(count_DPC[1]) + "(.a(" + x + "), .b(" + y + "), .sum(" + z + ")); \n";
 					}
-					/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-					sum_count_DPC++;*/
+
+					dpc_list[sum_count_DPC].dp_ins[0] = x;
+					dpc_list[sum_count_DPC].dp_ins[1] = y;
+					dpc_list[sum_count_DPC].dp_outs[0] = z;
+					dpc_list[sum_count_DPC].function = 1;
+					dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+					dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+					//dpc_list[sum_count_DPC].latency = std::stof(strv);
+					dpc_list[sum_count_DPC].out_line = oline;
+					dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[1]);
+					sum_count_DPC++;
 				}
 			}
 			found2 = iline.find(" - ");					//select SUB or DEC
@@ -944,7 +1205,7 @@ int main()
 						str4 = wirestr[m];
 						str5 = regstr[m];
 						s = varcheck3(nx, nz, x, z, str2, str3, str4, str5);
-						
+						//here = here + s;
 						if ((nx > 0) && (nz > 0))
 							break;
 					}
@@ -959,28 +1220,28 @@ int main()
 					for (int g = 0; g < i; g++)
 					{
 						strc = instr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[2] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = outstr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[2] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = wirestr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[2] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = regstr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[2] = std::to_string(DW[g]);
 							sz = sign_var[g];
@@ -990,35 +1251,34 @@ int main()
 					for (int l = 0; l < i; l++)
 					{
 						strc = instr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[2] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = outstr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[2] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = wirestr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[2] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = regstr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[2] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 					}
-					
 					count_DPC[11]++;							//count instances of DEC
 					if ((sx == 0) && (sz == 0))
 						oline = oline + "DEC #(.DATAWIDTH(" + z_dw[2] + ")) DEC_" + std::to_string(count_DPC[11]) + "(.a(" + x + "), .d(" + z + ")); \n";
@@ -1034,8 +1294,18 @@ int main()
 						}
 						oline = oline + "SDEC #(.DATAWIDTH(" + z_dw[2] + ")) SDEC_" + std::to_string(count_DPC[11]) + "(.a(" + x + "), .d(" + z + ")); \n";
 					}
-					/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-					sum_count_DPC++;*/
+
+					dpc_list[sum_count_DPC].dp_ins[0] = x;
+					//dpc_list[count_dpc].dp_ins[1] = y;
+					dpc_list[sum_count_DPC].dp_outs[0] = z;
+					dpc_list[sum_count_DPC].function = 11;
+					dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+					dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+					//dpc_list[sum_count_DPC].latency = std::stof(strv);
+					dpc_list[sum_count_DPC].out_line = oline;
+					dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[2]);
+					sum_count_DPC++;
+
 				}
 				else
 				{
@@ -1048,7 +1318,7 @@ int main()
 						str4 = wirestr[m];
 						str5 = regstr[m];
 						s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-						
+						//here = here + s;
 						if ((nx > 0) && (ny > 0) && (nz > 0))
 							break;
 					}
@@ -1063,28 +1333,28 @@ int main()
 					for (int g = 0; g < i; g++)
 					{
 						strc = instr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[3] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = outstr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[3] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = wirestr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[3] = std::to_string(DW[g]);
 							sz = sign_var[g];
 							break;
 						}
 						strc = regstr[g];
-						if (strc.find(z) < 20)
+						if (strc.find(z) < 50)
 						{
 							z_dw[3] = std::to_string(DW[g]);
 							sz = sign_var[g];
@@ -1094,28 +1364,28 @@ int main()
 					for (int l = 0; l < i; l++)
 					{
 						strc = instr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[3] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = outstr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[3] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = wirestr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[3] = std::to_string(DW[l]);
 							sx = sign_var[l];
 							break;
 						}
 						strc = regstr[l];
-						if (strc.find(x) < 20)
+						if (strc.find(x) < 50)
 						{
 							x_dw[3] = std::to_string(DW[l]);
 							sx = sign_var[l];
@@ -1125,28 +1395,28 @@ int main()
 					for (int k = 0; k < i; k++)
 					{
 						strc = instr[k];
-						if (strc.find(y) < 20)
+						if (strc.find(y) < 50)
 						{
 							y_dw[3] = std::to_string(DW[k]);
 							sy = sign_var[k];
 							break;
 						}
 						strc = outstr[k];
-						if (strc.find(y) < 20)
+						if (strc.find(y) < 50)
 						{
 							y_dw[3] = std::to_string(DW[k]);
 							sy = sign_var[k];
 							break;
 						}
 						strc = wirestr[k];
-						if (strc.find(y) < 20)
+						if (strc.find(y) < 50)
 						{
 							y_dw[3] = std::to_string(DW[k]);
 							sy = sign_var[k];
 							break;
 						}
 						strc = regstr[k];
-						if (strc.find(y) < 20)
+						if (strc.find(y) < 50)
 						{
 							y_dw[3] = std::to_string(DW[k]);
 							sy = sign_var[k];
@@ -1172,8 +1442,18 @@ int main()
 						}
 						oline = oline + "SSUB #(.DATAWIDTH(" + z_dw[3] + ")) SSUB_" + std::to_string(count_DPC[2]) + "(.a(" + x + "), .b(" + y + "), .diff(" + z + ")); \n";
 					}
-					/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-					sum_count_DPC++;*/
+
+					dpc_list[sum_count_DPC].dp_ins[0] = x;
+					dpc_list[sum_count_DPC].dp_ins[1] = y;
+					dpc_list[sum_count_DPC].dp_outs[0] = z;
+					dpc_list[sum_count_DPC].function = 2;
+					dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+					dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+					//dpc_list[sum_count_DPC].latency = std::stof(strv);
+					dpc_list[sum_count_DPC].out_line = oline;
+					dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[3]);
+					sum_count_DPC++;
+
 				}
 			}
 			found3 = iline.find(" * ");					//select MUL
@@ -1188,7 +1468,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -1203,28 +1483,28 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[4] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = outstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[4] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[4] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[4] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -1234,28 +1514,28 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[4] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[4] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[4] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[4] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -1265,28 +1545,28 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[4] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[4] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[4] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[4] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -1312,9 +1592,21 @@ int main()
 					}
 					oline = oline + "SMUL #(.DATAWIDTH(" + z_dw[4] + ")) SMUL_" + std::to_string(count_DPC[3]) + "(.a(" + x + "), .b(" + y + "), .prod(" + z + ")); \n";
 				}
+
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+
+				dpc_list[sum_count_DPC].function = 3;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stof(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[4]);
+				sum_count_DPC++;
+
 				temp = 3;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			found4 = iline.find(" / ");					//select DIV
 			if (found4 != string::npos)
@@ -1328,7 +1620,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -1343,28 +1635,28 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[5] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = outstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[5] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[5] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[5] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -1374,28 +1666,28 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[5] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[5] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[5] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[5] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -1405,28 +1697,28 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[5] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[5] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[5] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[5] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -1452,9 +1744,20 @@ int main()
 					}
 					oline = oline + "SDIV #(.DATAWIDTH(" + z_dw[5] + ")) SDIV_" + std::to_string(count_DPC[8]) + "(.a(" + x + "), .b(" + y + "), .quot(" + z + ")); \n";
 				}
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+
+				dpc_list[sum_count_DPC].function = 8;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stod(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[5]);
+				sum_count_DPC++;
+
 				temp = 4;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			found5 = iline.find(" % ");					//select MOD
 			if (found5 != string::npos)
@@ -1468,7 +1771,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -1480,31 +1783,31 @@ int main()
 				}
 				here = 0;
 				nw = 0, nx = 0, ny = 0, nz = 0;
-				for(int g = 0; g < i; g++)
+				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[6] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = outstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[6] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[6] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[6] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -1514,28 +1817,28 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[6] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[6] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[6] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[6] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -1545,28 +1848,28 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[6] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[6] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[6] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[6] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -1592,9 +1895,20 @@ int main()
 					}
 					oline = oline + "SMOD #(.DATAWIDTH(" + z_dw[6] + ")) SMOD_" + std::to_string(count_DPC[9]) + "(.a(" + x + "), .b(" + y + "), .rem(" + z + ")); \n";
 				}
+
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+
+				dpc_list[sum_count_DPC].function = 9;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stof(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[6]);
+				sum_count_DPC++;
+
 				temp = 5;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			found6 = iline.find(" << ");					//select shift left, SHL
 			if (found6 != string::npos)
@@ -1608,7 +1922,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -1623,28 +1937,28 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[7] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = outstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[7] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[7] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[7] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -1654,28 +1968,28 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[7] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[7] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[7] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[7] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -1685,28 +1999,28 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[7] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[7] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[7] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[7] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -1732,9 +2046,21 @@ int main()
 					}
 					oline = oline + "SSHL #(.DATAWIDTH(" + z_dw[7] + ")) SSHL_" + std::to_string(count_DPC[7]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				}
+
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+
+				dpc_list[sum_count_DPC].function = 7;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stof(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[7]);
+				sum_count_DPC++;
+
 				temp = 6;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			found7 = iline.find(" >> ");					//select shift right, SHR
 			if (found7 != string::npos)
@@ -1748,7 +2074,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -1763,28 +2089,28 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[8] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = outstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[8] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[8] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[8] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -1794,28 +2120,28 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[8] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[8] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[8] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[8] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -1825,28 +2151,28 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[8] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[8] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[8] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[8] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -1872,9 +2198,21 @@ int main()
 					}
 					oline = oline + "SSHR #(.DATAWIDTH(" + z_dw[8] + ")) SSHR_" + std::to_string(count_DPC[6]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
 				}
+
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+
+				dpc_list[sum_count_DPC].function = 6;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stof(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[8]);
+				sum_count_DPC++;
+
 				temp = 7;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			found8 = iline.find(" ? ");					//select MUX
 			if (found8 != string::npos)
@@ -1888,7 +2226,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck2(nw, nx, ny, nz, w, x, y, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nw > 0) && (nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -1903,28 +2241,28 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[9] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = outstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[9] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[9] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[9] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -1934,27 +2272,27 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[9] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[9] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[9] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[9] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -1964,27 +2302,27 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[9] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[9] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[9] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[9] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -1994,27 +2332,28 @@ int main()
 				for (int s = 0; s < i; s++)
 				{
 					strc = instr[s];
-					if (strc.find(w) < 20)
+					if (strc.find(w) < 50)
 					{
 						w_dw[9] = std::to_string(DW[s]);
 						sw = sign_var[s];
 						break;
-					}strc = outstr[s];
-					if (strc.find(w) < 20)
+					}
+					strc = outstr[s];
+					if (strc.find(w) < 50)
 					{
 						w_dw[9] = std::to_string(DW[s]);
 						sw = sign_var[s];
 						break;
 					}
 					strc = wirestr[s];
-					if (strc.find(w) < 20)
+					if (strc.find(w) < 50)
 					{
 						w_dw[9] = std::to_string(DW[s]);
 						sw = sign_var[s];
 						break;
 					}
 					strc = regstr[s];
-					if (strc.find(w) < 20)
+					if (strc.find(w) < 50)
 					{
 						w_dw[9] = std::to_string(DW[s]);
 						sw = sign_var[s];
@@ -2044,9 +2383,20 @@ int main()
 					}
 					oline = oline + "SMUX2x1 #(.DATAWIDTH(" + z_dw[9] + ")) SMUX2x1_" + std::to_string(count_DPC[5]) + "(.a(" + x + "), .b(" + y + "), .sel(" + w + "), .d(" + z + ")); \n";
 				}
+
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_ins[2] = w;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+				dpc_list[sum_count_DPC].function = 5;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stof(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[9]);
+				sum_count_DPC++;
 				temp = 8;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			found9 = iline.find(" == ");					//select COMP, eq output
 			if (found9 != string::npos)
@@ -2060,7 +2410,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -2075,27 +2425,28 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[10] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
-					}strc = outstr[g];
-					if (strc.find(z) < 20)
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
 					{
 						z_dw[10] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[10] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[10] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -2105,27 +2456,27 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[10] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[10] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[10] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[10] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -2135,27 +2486,27 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[10] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[10] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[10] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[10] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -2167,27 +2518,24 @@ int main()
 				else
 					z_dw[10] = x_dw[10];
 				count_DPC[4]++;							//count instances of COMP
-				if ((sx == 0) && (sy == 0) && (sz == 0))
-					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[10] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .eq(" + z + ")); \n";
+				if (stoi(x_dw[10]) >= stoi(y_dw[10]))
+					z_dw[10] = x_dw[10];
 				else
-				{
-					if (sx == 0)
-					{
-						x = "$signed({1'b0," + x + "}";
-					}
-					if (sy == 0)
-					{
-						y = "$signed({1'b0," + y + "}";
-					}
-					if (sz == 0)
-					{
-						z = "$signed({1'b0," + z + "}";
-					}
-					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[10] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .eq(" + z + ")); \n";
-				}
+					z_dw[10] = x_dw[10];
+
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+
+				dpc_list[sum_count_DPC].function = 4;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stof(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[10]);
+				sum_count_DPC++;
+
 				temp = 9;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			found10 = iline.find(" < ");					//select COMP, lt output 
 			if ((found10 != string::npos) && (temp != 6))
@@ -2201,7 +2549,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-
+					//here = here + s;
 					if ((nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -2216,27 +2564,28 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[11] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
-					}strc = outstr[g];
-					if (strc.find(z) < 20)
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
 					{
 						z_dw[11] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[11] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[11] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -2246,28 +2595,28 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[11] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[11] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[11] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[11] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -2277,28 +2626,28 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[11] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[11] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[11] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[11] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -2308,7 +2657,7 @@ int main()
 				if (stoi(x_dw[11]) >= stoi(y_dw[11]))
 					z_dw[11] = x_dw[11];
 				else
-					z_dw[11] = x_dw[11];
+					z_dw[11] = x_dw[11]; 
 				count_DPC[4]++;							//count instances of COMP
 				if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[11] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .lt(" + z + ")); \n";
@@ -2328,9 +2677,19 @@ int main()
 					}
 					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[11] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .lt(" + z + ")); \n";
 				}
+
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+				dpc_list[sum_count_DPC].function = 4;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stof(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[11]);
+				sum_count_DPC++;
+
 				temp = 10;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			found11 = iline.find(" > ");					//select COMP, gt output
 			if ((found11 != string::npos) && (temp != 7))
@@ -2344,7 +2703,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck(nx, ny, nz, x, y, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nx > 0) && (ny > 0) && (nz > 0))
 						break;
 				}
@@ -2359,28 +2718,28 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[12] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = outstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[12] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[12] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
 						z_dw[12] = std::to_string(DW[g]);
 						sz = sign_var[g];
@@ -2390,28 +2749,28 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[12] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[12] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[12] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
 						x_dw[12] = std::to_string(DW[l]);
 						sx = sign_var[l];
@@ -2421,28 +2780,28 @@ int main()
 				for (int k = 0; k < i; k++)
 				{
 					strc = instr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[12] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = outstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[12] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = wirestr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[12] = std::to_string(DW[k]);
 						sy = sign_var[k];
 						break;
 					}
 					strc = regstr[k];
-					if (strc.find(y) < 20)
+					if (strc.find(y) < 50)
 					{
 						y_dw[12] = std::to_string(DW[k]);
 						sy = sign_var[k];
@@ -2452,7 +2811,7 @@ int main()
 				if (stoi(x_dw[12]) >= stoi(y_dw[12]))
 					z_dw[12] = x_dw[12];
 				else
-					z_dw[12] = x_dw[12];
+					z_dw[12] = x_dw[12]; 
 				count_DPC[4]++;							//count instances of COMP
 				if ((sx == 0) && (sy == 0) && (sz == 0))
 					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[12] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .gt(" + z + ")); \n";
@@ -2472,9 +2831,19 @@ int main()
 					}
 					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[12] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .gt(" + z + ")); \n";
 				}
+
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
+				dpc_list[sum_count_DPC].dp_ins[1] = y;
+				dpc_list[sum_count_DPC].dp_outs[0] = z;
+				dpc_list[sum_count_DPC].function = 4;
+				dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+				dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+				//dpc_list[sum_count_DPC].latency = std::stof(strv);
+				dpc_list[sum_count_DPC].out_line = oline;
+
+				dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[12]);
+				sum_count_DPC++;
 				temp = 11;
-				/*dpc_list[sum_count_DPC].order = sum_count_DPC;
-				sum_count_DPC++;*/
 			}
 			if ((found != string::npos) && (temp == 0))		//select REG
 			{
@@ -2487,7 +2856,7 @@ int main()
 					str4 = wirestr[m];
 					str5 = regstr[m];
 					s = varcheck3(nx, nz, x, z, str2, str3, str4, str5);
-					
+					//here = here + s;
 					if ((nx > 0) && (nz > 0))
 						break;
 				}
@@ -2502,30 +2871,30 @@ int main()
 				for (int g = 0; g < i; g++)
 				{
 					strc = instr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[13] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = outstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[13] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = wirestr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[13] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
 					strc = regstr[g];
-					if (strc.find(z) < 20)
+					if (strc.find(z) < 50)
 					{
-						z_dw[12] = std::to_string(DW[g]);
+						z_dw[13] = std::to_string(DW[g]);
 						sz = sign_var[g];
 						break;
 					}
@@ -2533,70 +2902,82 @@ int main()
 				for (int l = 0; l < i; l++)
 				{
 					strc = instr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[13] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = outstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[13] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = wirestr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[13] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 					strc = regstr[l];
-					if (strc.find(x) < 20)
+					if (strc.find(x) < 50)
 					{
-						x_dw[12] = std::to_string(DW[l]);
+						x_dw[13] = std::to_string(DW[l]);
 						sx = sign_var[l];
 						break;
 					}
 				}
-				
+
 				error = opcheck(newline, x, z);
 				if (error == 1)
 				{
 					cout << endl
 						<< " Invalid Operation" << endl;
 					break;
-				}					
+				}
 				else
 				{
-					count_DPC[0]++;							//count instances of REG
-					if ((sx == 0) && (sz == 0))
-						oline = oline + "REG #(.DATAWIDTH(" + z_dw[12] + ")) REG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
-					else
+				count_DPC[0]++;							//count instances of REG
+				if ((sx == 0) && (sz == 0))
+					oline = oline + "REG #(.DATAWIDTH(" + z_dw[13] + ")) REG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
 					{
-						if (sx == 0)
-						{
-							x = "$signed({1'b0," + x + "}";
-						}
-						if (sz == 0)
-						{
-							z = "$signed({1'b0," + z + "}";
-						}
-						oline = oline + "SREG #(.DATAWIDTH(" + z_dw[12] + ")) SREG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
+						x = "$signed({1'b0," + x + "}";
 					}
-					/*dpc_list[sum_count_DPC].top_order = sum_count_DPC;
-					dpc_list[sum_count_DPC].latency = std::stoi(strv);
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+				oline = oline + "SREG #(.DATAWIDTH(" + z_dw[13] + ")) SREG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
+				}
+					dpc_list[sum_count_DPC].dp_ins[0] = x;
+					dpc_list[sum_count_DPC].dp_outs[0] = z;
+					dpc_list[sum_count_DPC].function = 0;
+					dpc_list[sum_count_DPC].order = sum_count_DPC + 1;
+					dpc_list[sum_count_DPC].top_order = sum_count_DPC + 1;
+					//dpc_list[sum_count_DPC].latency = std::stof(strv);
 					dpc_list[sum_count_DPC].out_line = oline;
 
-					sum_count_DPC++;*/
-				}				
-			}			
+					dpc_list[sum_count_DPC].d_width = std::stoi(z_dw[13]);
+					sum_count_DPC++;
+				}
+			}
+			count_dpc++;
 		}
 	}
 	myfile2 << oline << '\n';
 	myfile2 << "endmodule" << '\n';
+	get_schedule();							//create schedule, calculates circuit_clocks
+	get_est_lat();							//populate .latentcy in structure
+	cr_dp = calc_cr_dp();					//calculate the critical data path
+	myfile2 << endl << endl;
+	myfile2 << "//Critical Path : " + std::to_string(cr_dp) << endl;		//print critical data path to output file
+
 	myfile3.close();
 	myfile2.close();
 
