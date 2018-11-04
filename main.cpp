@@ -1,5 +1,6 @@
 // Assignment2.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
+#include "pch.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -681,10 +682,13 @@ int main(int argc, char *argv[]) {
             if ((foundname1 = iline.find("UInt")) != string::npos) {
                 iline = iline.substr(foundname1 + 4);
                 cir_list.inp_type = "UInt";
+                u++;
             }
             if ((foundname1 = iline.find("Int")) != string::npos) {
                 iline = iline.substr(foundname1 + 3);
-                cir_list.inp_type = "UInt";
+                cir_list.inp_type = "Int";
+                sign_var[u] = 1;
+				u++;
             }
             foundname2 = iline.find(" ");
             if (foundname2 != string::npos)
@@ -705,8 +709,17 @@ int main(int argc, char *argv[]) {
         if (foundname1 != string::npos)
         {
             iline = iline.substr(foundname1 + 6);
-            foundname1 = iline.find("Int");
-            iline = iline.substr(foundname1 + 3);
+            if ((foundname1 = iline.find("UInt")) != string::npos)
+			{
+				iline = iline.substr(foundname1 + 4);
+				u++;
+			}
+			if ((foundname1 = iline.find("Int")) != string::npos)
+			{
+				iline = iline.substr(foundname1 + 3);
+				sign_var[u] = 1;
+				u++;
+			}
             foundname2 = iline.find(" ");
             if (foundname2 != string::npos)
             {
@@ -728,8 +741,17 @@ int main(int argc, char *argv[]) {
         if ((foundname1 != string::npos) && (foundname1 == 0))
         {
             iline = iline.substr(foundname1 + 4);
-            foundname1 = iline.find("Int");
-            iline = iline.substr(foundname1 + 3);
+            if ((foundname1 = iline.find("UInt")) != string::npos)
+			{
+				iline = iline.substr(foundname1 + 4);
+				u++;
+			}
+			if ((foundname1 = iline.find("Int")) != string::npos)
+			{
+				iline = iline.substr(foundname1 + 3);
+				sign_var[u] = 1;
+				u++;
+			}
             foundname2 = iline.find(" ");
             if (foundname2 != string::npos)
             {
@@ -746,8 +768,17 @@ int main(int argc, char *argv[]) {
         if (foundname1 != string::npos)
         {
             iline = iline.substr(foundname1 + 8);
-            foundname1 = iline.find("Int");
-            iline = iline.substr(foundname1 + 3);
+            if ((foundname1 = iline.find("UInt")) != string::npos)
+			{
+				iline = iline.substr(foundname1 + 4);
+				u++;
+			}
+			if ((foundname1 = iline.find("Int")) != string::npos)
+			{
+				iline = iline.substr(foundname1 + 3);
+				sign_var[u] = 1;
+				u++;
+			}
             foundname2 = iline.find(" ");
             if (foundname2 != string::npos)
             {
@@ -796,13 +827,19 @@ int main(int argc, char *argv[]) {
             str = instr[p];
             if ((stoi(outsize)) >= (DW[p]))
             {
-                string str2 = std::to_string(bitsize / (DW[p]));
-                newline = newline + "input[DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
-            }
+				string str2 = std::to_string(bitsize / (DW[p]));
+				if (sign_var[p] == 0)
+					newline = newline + "input [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] > 0)
+					newline = newline + "input signed [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+			}
             else
             {
                 string str2 = std::to_string((DW[p]) / bitsize);
-                newline = newline + "input[DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] == 0)
+					newline = newline + "input [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] > 0)
+					newline = newline + "input signed [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n"; 
             }
             cir_list.inp_str = str;
             inpt_count++;
@@ -812,15 +849,20 @@ int main(int argc, char *argv[]) {
             str = outstr[p];
             if ((stoi(outsize)) >= (DW[p]))
             {
-                string str2 = std::to_string(bitsize / (DW[p]));
-                newline = newline + "output wire[DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
-            }
-
+				string str2 = std::to_string(bitsize / (DW[p]));
+				if (sign_var[p] == 0)
+					newline = newline + "output wire [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] > 0)
+					newline = newline + "output wire signed [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";				
+			}
             else
             {
-                string str2 = std::to_string((DW[p]) / bitsize);
-                newline = newline + "output wire[DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
-            }
+				string str2 = std::to_string((DW[p]) / bitsize);
+				if (sign_var[p] == 0)
+					newline = newline + "output wire [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] > 0)
+					newline = newline + "output wire signed [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
+			}
             cir_list.out_str = str;
             outpt_count++;
         }
@@ -829,15 +871,20 @@ int main(int argc, char *argv[]) {
             str = wirestr[p];
             if ((stoi(outsize)) >= (DW[p]))
             {
-                string str2 = std::to_string(bitsize / (DW[p]));
-                newline = newline + "wire[DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
-            }
-
+				string str2 = std::to_string(bitsize / (DW[p]));
+				if (sign_var[p] == 0)
+					newline = newline + "wire [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] > 0)
+					newline = newline + "wire signed [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+			}
             else
             {
-                string str2 = std::to_string((DW[p]) / bitsize);
-                newline = newline + "wire[DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
-            }
+				string str2 = std::to_string((DW[p]) / bitsize);
+				if (sign_var[p] == 0)
+					newline = newline + "wire [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] > 0)
+					newline = newline + "wire signed [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
+			}
             cir_list.wires[wire_count] = str;
         }
         if (regstr[p] != "")
@@ -845,14 +892,20 @@ int main(int argc, char *argv[]) {
             str = regstr[p];
             if ((stoi(outsize)) >= (DW[p]))
             {
-                string str2 = std::to_string(bitsize / (DW[p]));
-                newline = newline + "register[DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
-            }
+				string str2 = std::to_string(bitsize / (DW[p]));
+				if (sign_var[p] == 0)
+					newline = newline + "register [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] > 0)
+					newline = newline + "register signed [DATAWIDTH/" + str2 + "-1:0]" + str + "; \n";
+			}
             else
             {
-                string str2 = std::to_string((DW[p]) / bitsize);
-                newline = newline + "register[DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
-            }
+				string str2 = std::to_string((DW[p]) / bitsize);
+				if (sign_var[p] == 0)
+					newline = newline + "register [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
+				if (sign_var[p] > 0)
+					newline = newline + "register signed [DATAWIDTH*" + str2 + "-1:0]" + str + "; \n";
+			}
             cir_list.reg[reg_count] = str;
             reg_count++;
         }
@@ -910,24 +963,81 @@ int main(int argc, char *argv[]) {
                     nw = 0, nx = 0, ny = 0, nz = 0;
                     for (int g = 0; g < i; g++)
                     {
-                        strc = outstr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[0] = std::to_string(DW[g]);
-                        }
-                        strc = wirestr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[0] = std::to_string(DW[g]);
-                        }
-                        strc = regstr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[0] = std::to_string(DW[g]);
-                        }
-                    }
+						strc = instr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[0] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = outstr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[0] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = wirestr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[0] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = regstr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[0] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+					}
+					for (int l = 0; l < i; l++)
+					{
+						strc = instr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[0] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = outstr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[0] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = wirestr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[0] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = regstr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[0] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+					}
                     count_DPC[10]++;							//count instances of INC
-                    oline = oline + "INC #(.DATAWIDTH" + z_dw[0] + ") INC_" + std::to_string(count_DPC[10]) + "(.a(" + x + "), .d(" + z + ")); \n";
+                    if ((sx == 0) && (sz == 0))
+						oline = oline + "INC #(.DATAWIDTH" + z_dw[0] + ") INC_" + std::to_string(count_DPC[10]) + "(.a(" + x + "), .d(" + z + ")); \n";
+					else
+					{
+						if (sx == 0)
+						{
+							x = "$signed({1'b0," + x + "}";
+						}
+						if (sz == 0)
+						{
+							z = "$signed({1'b0," + z + "}";
+						}
+						oline = oline + "SINC #(.DATAWIDTH" + z_dw[0] + ") SINC_" + std::to_string(count_DPC[10]) + "(.a(" + x + "), .d(" + z + ")); \n";
+					}
                     dpc_list[count_dpc].dp_ins[0] = x;
                     dpc_list[count_dpc].dp_ins[1] = x;
                     dpc_list[count_dpc].dp_outs[0] = z;
@@ -964,27 +1074,116 @@ int main(int argc, char *argv[]) {
                     nw = 0, nx = 0, ny = 0, nz = 0;
                     for (int g = 0; g < i; g++)
                     {
-                        strc = outstr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[1] = std::to_string(DW[g]);
-                            break;
-                        }
-                        strc = wirestr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[1] = std::to_string(DW[g]);
-                            break;
-                        }
-                        strc = regstr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[1] = std::to_string(DW[g]);
-                            break;
-                        }
-                    }
-                    count_DPC[1]++;							//count instances of ADD
-                    oline = oline + "ADD #(.DATAWIDTH(" + z_dw[1] + ")) ADD_" + std::to_string(count_DPC[1]) + "(.a(" + x + "), .b(" + y + "), .sum(" + z + ")); \n";
+						strc = instr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[1] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = outstr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[1] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = wirestr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[1] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = regstr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[1] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+					}
+					for (int l = 0; l < i; l++)
+					{
+						strc = instr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[1] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = outstr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[1] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = wirestr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[1] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = regstr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[1] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+					}
+					for (int k = 0; k < i; k++)
+					{
+						strc = instr[k];
+						if (strc.find(y) < 50)
+						{
+							y_dw[1] = std::to_string(DW[k]);
+							sy = sign_var[k];
+							break;
+						}
+						strc = outstr[k];
+						if (strc.find(y) < 50)
+						{
+							y_dw[1] = std::to_string(DW[k]);
+							sy = sign_var[k];
+							break;
+						}
+						strc = wirestr[k];
+						if (strc.find(y) < 50)
+						{
+							y_dw[1] = std::to_string(DW[k]);
+							sy = sign_var[k];
+							break;
+						}
+						strc = regstr[k];
+						if (strc.find(y) < 50)
+						{
+							y_dw[1] = std::to_string(DW[k]);
+							sy = sign_var[k];
+							break;
+						}
+					}
+					count_DPC[1]++;							//count instances of ADD
+					if ((sx == 0) && (sy == 0) && (sz == 0))
+						oline = oline + "ADD #(.DATAWIDTH(" + z_dw[1] + ")) ADD_" + std::to_string(count_DPC[1]) + "(.a(" + x + "), .b(" + y + "), .sum(" + z + ")); \n";
+					else
+					{
+						if (sx == 0)
+						{
+							x = "$signed({1'b0," + x + "}";
+						}
+						if (sy == 0)
+						{
+							y = "$signed({1'b0," + y + "}";
+						}
+						if (sz == 0)
+						{
+							z = "$signed({1'b0," + z + "}";
+						}
+						oline = oline + "SADD #(.DATAWIDTH(" + z_dw[1] + ")) SADD_" + std::to_string(count_DPC[1]) + "(.a(" + x + "), .b(" + y + "), .sum(" + z + ")); \n";
+					}
                     dpc_list[sum_count_DPC].dp_ins[0] = x;
                     dpc_list[sum_count_DPC].dp_ins[1] = y;
                     dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1027,27 +1226,81 @@ int main(int argc, char *argv[]) {
                     nw = 0, nx = 0, ny = 0, nz = 0;
                     for (int g = 0; g < i; g++)
                     {
-                        strc = outstr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[2] = std::to_string(DW[g]);
-                            break;
-                        }
-                        strc = wirestr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[2] = std::to_string(DW[g]);
-                            break;
-                        }
-                        strc = regstr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[2] = std::to_string(DW[g]);
-                            break;
-                        }
-                    }
-                    count_DPC[11]++;							//count instances of DEC
-                    oline = oline + "DEC #(.DATAWIDTH(" + z_dw[2] + ")) DEC_" + std::to_string(count_DPC[11]) + "(.a(" + x + "), .d(" + z + ")); \n";
+						strc = instr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[2] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = outstr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[2] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = wirestr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[2] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = regstr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[2] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+					}
+					for (int l = 0; l < i; l++)
+					{
+						strc = instr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[2] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = outstr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[2] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = wirestr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[2] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = regstr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[2] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+					}
+					count_DPC[11]++;							//count instances of DEC
+					if ((sx == 0) && (sz == 0))
+						oline = oline + "DEC #(.DATAWIDTH(" + z_dw[2] + ")) DEC_" + std::to_string(count_DPC[11]) + "(.a(" + x + "), .d(" + z + ")); \n";
+					else
+					{
+						if (sx == 0)
+						{
+							x = "$signed({1'b0," + x + "}";
+						}
+						if (sz == 0)
+						{
+							z = "$signed({1'b0," + z + "}";
+						}
+						oline = oline + "SDEC #(.DATAWIDTH(" + z_dw[2] + ")) SDEC_" + std::to_string(count_DPC[11]) + "(.a(" + x + "), .d(" + z + ")); \n";
+					}
                     dpc_list[sum_count_DPC].dp_ins[0] = x;
                     //dpc_list[count_dpc].dp_ins[1] = y;
                     dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1085,27 +1338,116 @@ int main(int argc, char *argv[]) {
                     nw = 0, nx = 0, ny = 0, nz = 0;
                     for (int g = 0; g < i; g++)
                     {
-                        strc = outstr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[3] = std::to_string(DW[g]);
-                            break;
-                        }
-                        strc = wirestr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[3] = std::to_string(DW[g]);
-                            break;
-                        }
-                        strc = regstr[g];
-                        if (strc.find(z) < 20)
-                        {
-                            z_dw[3] = std::to_string(DW[g]);
-                            break;
-                        }
-                    }
-                    count_DPC[2]++;							//count instances of SUB
-                    oline = oline + "SUB #(.DATAWIDTH(" + z_dw[3] + ")) SUB_" + std::to_string(count_DPC[2]) + "(.a(" + x + "), .b(" + y + "), .diff(" + z + ")); \n";
+						strc = instr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[3] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = outstr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[3] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = wirestr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[3] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+						strc = regstr[g];
+						if (strc.find(z) < 50)
+						{
+							z_dw[3] = std::to_string(DW[g]);
+							sz = sign_var[g];
+							break;
+						}
+					}
+					for (int l = 0; l < i; l++)
+					{
+						strc = instr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[3] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = outstr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[3] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = wirestr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[3] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+						strc = regstr[l];
+						if (strc.find(x) < 50)
+						{
+							x_dw[3] = std::to_string(DW[l]);
+							sx = sign_var[l];
+							break;
+						}
+					}
+					for (int k = 0; k < i; k++)
+					{
+						strc = instr[k];
+						if (strc.find(y) < 50)
+						{
+							y_dw[3] = std::to_string(DW[k]);
+							sy = sign_var[k];
+							break;
+						}
+						strc = outstr[k];
+						if (strc.find(y) < 50)
+						{
+							y_dw[3] = std::to_string(DW[k]);
+							sy = sign_var[k];
+							break;
+						}
+						strc = wirestr[k];
+						if (strc.find(y) < 50)
+						{
+							y_dw[3] = std::to_string(DW[k]);
+							sy = sign_var[k];
+							break;
+						}
+						strc = regstr[k];
+						if (strc.find(y) < 50)
+						{
+							y_dw[3] = std::to_string(DW[k]);
+							sy = sign_var[k];
+							break;
+						}
+					}
+					count_DPC[2]++;							//count instances of SUB
+					if ((sx == 0) && (sy == 0) && (sz == 0))
+						oline = oline + "SUB #(.DATAWIDTH(" + z_dw[3] + ")) SUB_" + std::to_string(count_DPC[2]) + "(.a(" + x + "), .b(" + y + "), .diff(" + z + ")); \n";
+					else
+					{
+						if (sx == 0)
+						{
+							x = "$signed({1'b0," + x + "}";
+						}
+						if (sy == 0)
+						{
+							y = "$signed({1'b0," + y + "}";
+						}
+						if (sz == 0)
+						{
+							z = "$signed({1'b0," + z + "}";
+						}
+						oline = oline + "SSUB #(.DATAWIDTH(" + z_dw[3] + ")) SSUB_" + std::to_string(count_DPC[2]) + "(.a(" + x + "), .b(" + y + "), .diff(" + z + ")); \n";
+					}
                     dpc_list[sum_count_DPC].dp_ins[0] = x;
                     dpc_list[sum_count_DPC].dp_ins[1] = y;
                     dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1145,28 +1487,117 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[4] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[4] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[4] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[3]++;							//count instances of MUL
-                oline = oline + "MUL #(.DATAWIDTH(" + z_dw[4] + ")) MUL_" + std::to_string(count_DPC[3]) + "(.a(" + x + "), .b(" + y + "), .prod(" + z + ")); \n";
-                dpc_list[sum_count_DPC].dp_ins[0] = x;
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[4] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[4] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[4] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[4] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[4] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[4] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[4] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[4] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[4] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[4] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[4] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[4] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				count_DPC[3]++;							//count instances of MUL
+				if ((sx == 0) && (sy == 0) && (sz == 0))
+					oline = oline + "MUL #(.DATAWIDTH(" + z_dw[4] + ")) MUL_" + std::to_string(count_DPC[3]) + "(.a(" + x + "), .b(" + y + "), .prod(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					oline = oline + "SMUL #(.DATAWIDTH(" + z_dw[4] + ")) SMUL_" + std::to_string(count_DPC[3]) + "(.a(" + x + "), .b(" + y + "), .prod(" + z + ")); \n";
+				}
+				dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_outs[0] = z;
                 dpc_list[sum_count_DPC].function = 3;
@@ -1205,27 +1636,116 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[5] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[5] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[5] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[8]++;							//count instances of DIV
-                oline = oline + "DIV #(.DATAWIDTH(" + z_dw[5] + ")) DIV_" + std::to_string(count_DPC[8]) + "(.a(" + x + "), .b(" + y + "), .quot(" + z + ")); \n";
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[5] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[5] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[5] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[5] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[5] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[5] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[5] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[5] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[5] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[5] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[5] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[5] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				count_DPC[8]++;							//count instances of DIV
+				if ((sx == 0) && (sy == 0) && (sz == 0))
+					oline = oline + "DIV #(.DATAWIDTH(" + z_dw[5] + ")) DIV_" + std::to_string(count_DPC[8]) + "(.a(" + x + "), .b(" + y + "), .quot(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					oline = oline + "SDIV #(.DATAWIDTH(" + z_dw[5] + ")) SDIV_" + std::to_string(count_DPC[8]) + "(.a(" + x + "), .b(" + y + "), .quot(" + z + ")); \n";
+				}
                 dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1265,27 +1785,116 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[6] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[6] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[6] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[9]++;							//count instances of MOD
-                oline = oline + "MOD #(.DATAWIDTH(" + z_dw[6] + ")) MOD_" + std::to_string(count_DPC[9]) + "(.a(" + x + "), .b(" + y + "), .rem(" + z + ")); \n";
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[6] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[6] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[6] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[6] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[6] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[6] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[6] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[6] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[6] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[6] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[6] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[6] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				count_DPC[9]++;							//count instances of MOD
+				if ((sx == 0) && (sy == 0) && (sz == 0))
+					oline = oline + "MOD #(.DATAWIDTH(" + z_dw[6] + ")) MOD_" + std::to_string(count_DPC[9]) + "(.a(" + x + "), .b(" + y + "), .rem(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					oline = oline + "SMOD #(.DATAWIDTH(" + z_dw[6] + ")) SMOD_" + std::to_string(count_DPC[9]) + "(.a(" + x + "), .b(" + y + "), .rem(" + z + ")); \n";
+				}   
                 dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1324,27 +1933,116 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[7] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[7] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[7] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[7]++;							//count instances of SHL
-                oline = oline + "SHL #(.DATAWIDTH(" + z_dw[7] + ")) SHL_" + std::to_string(count_DPC[7]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[7] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[7] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[7] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[7] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[7] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[7] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[7] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[7] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[7] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[7] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[7] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[7] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				count_DPC[7]++;							//count instances of SHL
+				if ((sx == 0) && (sy == 0) && (sz == 0))
+					oline = oline + "SHL #(.DATAWIDTH(" + z_dw[7] + ")) SHL_" + std::to_string(count_DPC[7]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					oline = oline + "SSHL #(.DATAWIDTH(" + z_dw[7] + ")) SSHL_" + std::to_string(count_DPC[7]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
+				}
                 dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1383,27 +2081,116 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[8] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[8] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[8] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[6]++;							//count instances of SHR
-                oline = oline + "SHR #(.DATAWIDTH(" + z_dw[8] + ")) SHR_" + std::to_string(count_DPC[6]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[8] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[8] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[8] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[8] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[8] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[8] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[8] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[8] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[8] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[8] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[8] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[8] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				count_DPC[6]++;							//count instances of SHR
+				if ((sx == 0) && (sy == 0) && (sz == 0))
+					oline = oline + "SHR #(.DATAWIDTH(" + z_dw[8] + ")) SHR_" + std::to_string(count_DPC[6]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					oline = oline + "SSHR #(.DATAWIDTH(" + z_dw[8] + ")) SSHR_" + std::to_string(count_DPC[6]) + "(.a(" + x + "), .sh_amt(" + y + "), .d(" + z + ")); \n";
+				}
                 dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1442,27 +2229,149 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[9] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[9] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[9] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[5]++;							//count instances of MUX
-                oline = oline + "MUX2x1 #(.DATAWIDTH(" + z_dw[9] + ")) MUX2x1_" + std::to_string(count_DPC[5]) + "(.a(" + x + "), .b(" + y + "), .sel(" + w + "), .d(" + z + ")); \n";
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[9] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[9] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[9] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[9] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[9] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[9] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[9] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[9] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[9] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[9] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[9] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[9] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				for (int s = 0; s < i; s++)
+				{
+					strc = instr[s];
+					if (strc.find(w) < 50)
+					{
+						w_dw[9] = std::to_string(DW[s]);
+						sw = sign_var[s];
+						break;
+					}
+					strc = outstr[s];
+					if (strc.find(w) < 50)
+					{
+						w_dw[9] = std::to_string(DW[s]);
+						sw = sign_var[s];
+						break;
+					}
+					strc = wirestr[s];
+					if (strc.find(w) < 50)
+					{
+						w_dw[9] = std::to_string(DW[s]);
+						sw = sign_var[s];
+						break;
+					}
+					strc = regstr[s];
+					if (strc.find(w) < 50)
+					{
+						w_dw[9] = std::to_string(DW[s]);
+						sw = sign_var[s];
+						break;
+					}
+				}
+				count_DPC[5]++;							//count instances of MUX
+				if ((sx == 0) && (sy == 0) && (sz == 0) && (sw == 0))
+					oline = oline + "MUX2x1 #(.DATAWIDTH(" + z_dw[9] + ")) MUX2x1_" + std::to_string(count_DPC[5]) + "(.a(" + x + "), .b(" + y + "), .sel(" + w + "), .d(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					if (sw == 0)
+					{
+						w = "$signed({1'b0," + w + "}";
+					}
+					oline = oline + "SMUX2x1 #(.DATAWIDTH(" + z_dw[9] + ")) SMUX2x1_" + std::to_string(count_DPC[5]) + "(.a(" + x + "), .b(" + y + "), .sel(" + w + "), .d(" + z + ")); \n";
+				}
                 dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_ins[2] = w;
@@ -1502,27 +2411,122 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[10] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[10] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[10] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[4]++;							//count instances of COMP
-                oline = oline + "COMP #(.DATAWIDTH(" + z_dw[10] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .eq(" + z + ")); \n";
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[10] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[10] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[10] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[10] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[10] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[10] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[10] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[10] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[10] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[10] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[10] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[10] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				if (stoi(x_dw[10]) >= stoi(y_dw[10]))
+					z_dw[10] = x_dw[10];
+				else
+					z_dw[10] = x_dw[10];
+				count_DPC[4]++;							//count instances of COMP
+				if (stoi(x_dw[10]) >= stoi(y_dw[10]))
+					z_dw[10] = x_dw[10];
+				else
+					z_dw[10] = x_dw[10];
+                if ((sx == 0) && (sy == 0) && (sz == 0))
+					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[10] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .eq(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[10] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .eq(" + z + ")); \n";
+				}
                 dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1562,27 +2566,120 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[11] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[11] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[11] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[4]++;							//count instances of COMP
-                oline = oline + "COMP #(.DATAWIDTH(" + z_dw[11] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .lt(" + z + ")); \n";
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[11] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[11] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[11] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[11] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[11] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[11] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[11] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[11] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[11] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[11] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[11] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[11] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				if (stoi(x_dw[11]) >= stoi(y_dw[11]))
+					z_dw[11] = x_dw[11];
+				else
+					z_dw[11] = x_dw[11]; 
+				count_DPC[4]++;							//count instances of COMP
+				if ((sx == 0) && (sy == 0) && (sz == 0))
+					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[11] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .lt(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[11] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .lt(" + z + ")); \n";
+				}
                 dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1622,27 +2719,120 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[12] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[12] = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        z_dw[12] = std::to_string(DW[g]);
-                        break;
-                    }
-                }
-                count_DPC[4]++;							//count instances of COMP
-                oline = oline + "COMP #(.DATAWIDTH(" + z_dw[12] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .gt(" + z + ")); \n";
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[12] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[12] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[12] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[12] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[12] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[12] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[12] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[12] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
+				for (int k = 0; k < i; k++)
+				{
+					strc = instr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[12] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = outstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[12] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = wirestr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[12] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+					strc = regstr[k];
+					if (strc.find(y) < 50)
+					{
+						y_dw[12] = std::to_string(DW[k]);
+						sy = sign_var[k];
+						break;
+					}
+				}
+				if (stoi(x_dw[12]) >= stoi(y_dw[12]))
+					z_dw[12] = x_dw[12];
+				else
+					z_dw[12] = x_dw[12]; 
+				count_DPC[4]++;							//count instances of COMP
+				if ((sx == 0) && (sy == 0) && (sz == 0))
+					oline = oline + "COMP #(.DATAWIDTH(" + z_dw[12] + ")) COMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .gt(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sy == 0)
+					{
+						y = "$signed({1'b0," + y + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+					oline = oline + "SCOMP #(.DATAWIDTH(" + z_dw[12] + ")) SCOMP_" + std::to_string(count_DPC[4]) + "(.a(" + x + "), .b(" + y + "), .gt(" + z + ")); \n";
+				}
                 dpc_list[sum_count_DPC].dp_ins[0] = x;
                 dpc_list[sum_count_DPC].dp_ins[1] = y;
                 dpc_list[sum_count_DPC].dp_outs[0] = z;
@@ -1680,25 +2870,66 @@ int main(int argc, char *argv[]) {
                 nw = 0, nx = 0, ny = 0, nz = 0;
                 for (int g = 0; g < i; g++)
                 {
-                    strc = outstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        strv = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = wirestr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        strv = std::to_string(DW[g]);
-                        break;
-                    }
-                    strc = regstr[g];
-                    if (strc.find(z) < 20)
-                    {
-                        strv = std::to_string(DW[g]);
-                        break;
-                    }
-                }
+					strc = instr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[13] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = outstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[13] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = wirestr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[13] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+					strc = regstr[g];
+					if (strc.find(z) < 50)
+					{
+						z_dw[13] = std::to_string(DW[g]);
+						sz = sign_var[g];
+						break;
+					}
+				}
+				for (int l = 0; l < i; l++)
+				{
+					strc = instr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[13] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = outstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[13] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = wirestr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[13] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+					strc = regstr[l];
+					if (strc.find(x) < 50)
+					{
+						x_dw[13] = std::to_string(DW[l]);
+						sx = sign_var[l];
+						break;
+					}
+				}
                 error = opcheck(newline, x, z);
                 if (error == 1)
                 {
@@ -1709,7 +2940,20 @@ int main(int argc, char *argv[]) {
                 else
                 {
                     count_DPC[0]++;							//count instances of REG
-                    oline = oline + "REG #(.DATAWIDTH(" + strv + ")) REG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
+				if ((sx == 0) && (sz == 0))
+					oline = oline + "REG #(.DATAWIDTH(" + z_dw[13] + ")) REG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
+				else
+				{
+					if (sx == 0)
+					{
+						x = "$signed({1'b0," + x + "}";
+					}
+					if (sz == 0)
+					{
+						z = "$signed({1'b0," + z + "}";
+					}
+				oline = oline + "SREG #(.DATAWIDTH(" + z_dw[13] + ")) SREG_" + std::to_string(count_DPC[0]) + "(.d(" + x + "), .Clk(1), .Rst(0), .q(" + z + ")); \n";
+				}
                     dpc_list[sum_count_DPC].dp_ins[0] = x;
                     dpc_list[sum_count_DPC].dp_outs[0] = z;
                     dpc_list[sum_count_DPC].function = 0;
